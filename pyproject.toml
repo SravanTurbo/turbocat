@@ -1,0 +1,29 @@
+[project]
+name = "data-connectors"
+version = "0.1.0"
+description = "Backend/data connector library"
+authors = [
+    {name = "sra1turbo",email = "sra1turibilli@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "requests (>=2.32.5,<3.0.0)"
+]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "black (>=26.1.0,<27.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "mypy (>=1.19.1,<2.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)"
+]
+
+# ----------------------------
+# Tool Configurations
+# ----------------------------
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
