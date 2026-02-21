@@ -24,6 +24,15 @@ dev = [
 # Tool Configurations
 # ----------------------------
 
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true  # remove once all deps ship stubs or types-* packages are added
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

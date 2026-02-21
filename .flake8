@@ -1,0 +1,11 @@
+[flake8]
+max-line-length = 88
+# E203: whitespace before ':' — black formats this way, flake8 disagrees
+# W503: line break before binary operator — black prefers this style
+extend-ignore = E203, W503
+exclude =
+    .git,
+    .venv,
+    __pycache__,
+    .mypy_cache,
+    poetry.lock
