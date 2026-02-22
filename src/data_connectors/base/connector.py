@@ -95,11 +95,21 @@ class BaseSourceConnector(BaseConnector):
         schema = self.get_schema()
         for field_name in schema.required_column_names():
             if field_name not in record or record[field_name] is None:
-                self.logger.warning(
-                    "Record skipped — missing required field '%s'", field_name
-                )
+                self.logger.warning("Record skipped — missing required field '%s'", field_name)
                 return False
         return True
+
+    @abstractmethod
+    def transform(self, record: dict[str, Any]) -> dict[str, Any]:
+        """
+        Transform a record from the source system into a format suitable
+        for the destination.
+        This method is called for each record yielded by extract().
+
+        Args:
+            record: The record to transform.
+        """
+        ...
 
     def sync(
         self,
@@ -155,9 +165,7 @@ class BaseSourceConnector(BaseConnector):
             return loaded
 
         try:
-            for record in self.extract(
-                start_time=start_time, end_time=end_time, state=state
-            ):
+            for record in self.extract(start_time=start_time, end_time=end_time, state=state):
                 records_extracted += 1
 
                 if not self.validate(record):
