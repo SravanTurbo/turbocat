@@ -6,10 +6,13 @@ authors = [
     {name = "sra1turbo",email = "sra1turibilli@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<4"
 dependencies = [
     "datetime",
-    "requests (>=2.32.5,<3.0.0)"
+    "requests (>=2.32.5,<3.0.0)",
+    "clickhouse-driver (>=0.2.10,<0.3.0)",
+    "pydantic (>=2.12.5,<3.0.0)",
+    "pydantic-settings (>=2.13.1,<3.0.0)"
 ]
 
 [dependency-groups]
@@ -34,6 +37,13 @@ target-version = ["py313"]
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true  # remove once all deps ship stubs or types-* packages are added
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+# Treat all pydantic model fields as having their env-var sources considered,
+# so BaseSettings() with no constructor args doesn't look like a missing-arg error.
+init_forbid_extra = true
+init_typed = true
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

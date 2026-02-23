@@ -7,27 +7,23 @@ from requests.auth import HTTPBasicAuth
 
 from data_connectors.base.connector import BaseSourceConnector
 from data_connectors.base.models import ColumnSchema, TableSchema
+from data_connectors.sources.razorpay.config import RazorpaySourceConfig
 
 
 class RazorpayOrdersConnector(BaseSourceConnector):
     """Extract orders from Razorpay API."""
 
     connector_name = "razorpay_orders"
+    config: RazorpaySourceConfig
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(self, config: RazorpaySourceConfig) -> None:
         super().__init__(config)
 
-        source_config: dict[str, Any] = config.get("source_config") or {}
-        self.api_key: str = source_config.get("api_key") or ""
-        self.api_secret: str = source_config.get("api_secret") or ""
-        self.base_url: str = source_config.get("base_url") or ""
-
         self.session = requests.Session()
-        self.session.auth = HTTPBasicAuth(self.api_key, self.api_secret)
-
+        self.session.auth = HTTPBasicAuth(config.api_key, config.api_secret.get_secret_value())
         self.session.headers.update({"Content-Type": "application/json"})
 
-        self.logger.info(f"{self.connector_name} connector initialized")
+        self.logger.info("%s connector initialized — base_url=%s", self.connector_name, config.base_url)
 
     def extract(
         self,
@@ -59,7 +55,7 @@ class RazorpayOrdersConnector(BaseSourceConnector):
             self.logger.debug("Fetching page - params=%s", params)
 
             try:
-                response = self.session.get(f"{self.base_url}/orders", params=params, timeout=10)
+                response = self.session.get(f"{self.config.base_url}/orders", params=params, timeout=10)
 
                 if response.status_code == 429:
                     self._handle_rate_limit(response)

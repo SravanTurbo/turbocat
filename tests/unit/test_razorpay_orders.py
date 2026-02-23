@@ -1,22 +1,29 @@
-# test_razorpay_orders.py
-
 """
-Test script for Razorpay Orders connector.
+Unit / manual test script for the Razorpay Orders connector.
+
+Credentials are loaded exclusively from environment variables — never hardcoded.
+
+Required env vars (set in .env or export in your shell):
+    RAZORPAY_API_KEY
+    RAZORPAY_API_SECRET
+
+Optional:
+    RAZORPAY_BASE_URL   (defaults to https://api.razorpay.com/v1)
 
 Usage:
-    python test_razorpay_orders.py
+    RAZORPAY_API_KEY=rzp_test_xxx RAZORPAY_API_SECRET=yyy python -m pytest tests/unit/test_razorpay_orders.py -s
 """
 
 import logging
 import sys
 from datetime import datetime, timedelta
 
-# Import our connector
+from data_connectors.sources.razorpay.config import RazorpaySourceConfig
 from data_connectors.sources.razorpay.orders_connector import RazorpayOrdersConnector
 
-# Set up logging to see what's happening
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # Show all logs including DEBUG
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
@@ -27,16 +34,13 @@ def test_fetch_orders() -> bool:
     print("Testing Razorpay Orders Connector")
     print("=" * 60 + "\n")
 
-    # Configuration with your credentials
-    config = {
-        "source_config": {
-            "api_key": "rzp_test_SIscntO0Xjha9C",  # ← Replace this
-            "api_secret": "C9hIN19xyMusQlalMBLfUMzj",  # ← Replace this
-            "base_url": "https://api.razorpay.com/v1",
-        },
-    }
+    # Config is loaded from RAZORPAY_* environment variables.
+    # Raises ValidationError immediately if required vars are missing.
+    config = RazorpaySourceConfig()
+    print(f"   api_key  : {config.api_key}")
+    print(f"   api_secret: {config.api_secret}")  # prints SecretStr('**********')
+    print(f"   base_url : {config.base_url}\n")
 
-    # Create connector
     print("1. Initializing connector...")
     connector = RazorpayOrdersConnector(config)
     print("   ✓ Connector initialized\n")
@@ -56,7 +60,6 @@ def test_fetch_orders() -> bool:
             print(f"  Created:     {order['created_at']}")
             print(f"  Receipt:     {order['receipt']}")
 
-            # Only show first 5 orders to avoid spam
             if order_count >= 5:
                 print("\n  ... (showing only first 5)")
                 break
@@ -70,7 +73,7 @@ def test_fetch_orders() -> bool:
         traceback.print_exc()
         return False
 
-    # Test 2: Fetch recent orders only (last 7 days)
+    # Test 2: Fetch recent orders (last 7 days)
     print("\n" + "=" * 60)
     print("3. Fetching orders from last 7 days...")
     print("-" * 60)
@@ -110,10 +113,7 @@ def test_fetch_orders() -> bool:
         print("5. Testing validation...")
         print("-" * 60)
 
-        # Fetch one order
         test_order = next(connector.extract())
-
-        # Validate it
         is_valid = connector.validate(test_order)
 
         if is_valid:
@@ -130,10 +130,5 @@ def test_fetch_orders() -> bool:
 
 
 if __name__ == "__main__":
-    # Uncomment this to create test orders first
-    # create_test_order("rzp_test_xxx", "xxx")
-
-    # Run tests
     success = test_fetch_orders()
-
     sys.exit(0 if success else 1)

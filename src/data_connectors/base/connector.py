@@ -5,6 +5,8 @@ from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel
+
 from data_connectors.base.models import SyncResult, TableSchema
 
 
@@ -13,13 +15,18 @@ class BaseConnector(ABC):
     Shared base for all connectors — source and destination alike.
 
     Holds only the two things every connector needs:
-    - config:  the raw settings dict passed in at construction time
+    - config:  a validated Pydantic settings object (subclass of BaseModel)
     - logger:  a named logger so every log line identifies which connector wrote it
+
+    Accepting a BaseModel instead of a raw dict gives us:
+    - Type safety and IDE autocompletion on config fields
+    - Validation at construction time (missing / wrong-type fields raise immediately)
+    - SecretStr fields that never leak into logs or repr() output
     """
 
     connector_name: str = "base"
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(self, config: BaseModel) -> None:
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
 
