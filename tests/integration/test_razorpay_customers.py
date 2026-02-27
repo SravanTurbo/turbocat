@@ -1,5 +1,5 @@
 """
-Unit / manual test script for the Razorpay Orders connector.
+Unit / manual test script for the Razorpay Customers connector.
 
 Credentials are loaded exclusively from environment variables — never hardcoded.
 
@@ -11,7 +11,7 @@ Optional:
     RAZORPAY_BASE_URL   (defaults to https://api.razorpay.com/v1)
 
 Usage:
-    RAZORPAY_API_KEY=rzp_test_xxx RAZORPAY_API_SECRET=yyy python -m pytest tests/unit/test_razorpay_orders.py -s
+    RAZORPAY_API_KEY=rzp_test_xxx RAZORPAY_API_SECRET=yyy python -m pytest tests/unit/test_razorpay_customers.py -s
 """
 
 import logging
@@ -19,7 +19,7 @@ import sys
 from datetime import datetime, timedelta
 
 from data_connectors.sources.razorpay.config import RazorpaySourceConfig
-from data_connectors.sources.razorpay.orders_connector import RazorpayOrdersConnector
+from data_connectors.sources.razorpay.customers_connector import RazorpayCustomersConnector
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -27,11 +27,11 @@ logging.basicConfig(
 )
 
 
-def test_fetch_orders() -> bool:
+def test_fetch_customers() -> bool:
     """Test fetching orders from Razorpay."""
 
     print("\n" + "=" * 60)
-    print("Testing Razorpay Orders Connector")
+    print("Testing Razorpay Customers Connector")
     print("=" * 60 + "\n")
 
     # Config is loaded from RAZORPAY_* environment variables.
@@ -42,29 +42,29 @@ def test_fetch_orders() -> bool:
     print(f"   base_url : {config.base_url}\n")
 
     print("1. Initializing connector...")
-    connector = RazorpayOrdersConnector(config)
+    connector = RazorpayCustomersConnector(config)
     print("   ✓ Connector initialized\n")
 
-    # Test 1: Fetch all orders (no time filter)
-    print("2. Fetching ALL orders...")
+    print("2. Fetching ALL ...")
     print("-" * 60)
 
-    order_count = 0
+    customer_count = 0
     try:
-        for order in connector.extract():
-            order_count += 1
-            print(f"\nOrder {order_count}:")
-            print(f"  ID:          {order['id']}")
-            print(f"  Amount:      ₹{order['amount']}")
-            print(f"  Status:      {order['status']}")
-            print(f"  Created:     {order['created_at']}")
-            print(f"  Receipt:     {order['receipt']}")
+        for customer in connector.extract():
+            customer_count += 1
+            print(f"\nCustomer {customer_count}:")
+            print(f"  ID:          {customer['id']}")
+            print(f"  Name:        {customer['name']}")
+            print(f"  Email:       {customer['email']}")
+            print(f"  Contact:     {customer['contact']}")
+            print(f"  Created:     {customer['created_at']}")
+            print(f"  Extracted:   {customer['_extracted_at']}")
 
-            if order_count >= 5:
+            if customer_count >= 5:
                 print("\n  ... (showing only first 5)")
                 break
 
-        print(f"\n✓ Successfully fetched {order_count} orders")
+        print(f"\n✓ Successfully fetched {customer_count} customers")
 
     except Exception as e:
         print(f"\n✗ Error: {e}")
@@ -75,7 +75,7 @@ def test_fetch_orders() -> bool:
 
     # Test 2: Fetch recent orders (last 7 days)
     print("\n" + "=" * 60)
-    print("3. Fetching orders from last 7 days...")
+    print("3. Fetching customers from last 7 days...")
     print("-" * 60)
 
     start_time = datetime.utcnow() - timedelta(days=7)
@@ -83,11 +83,11 @@ def test_fetch_orders() -> bool:
 
     recent_count = 0
     try:
-        for order in connector.extract(start_time=start_time, end_time=end_time):
+        for customer in connector.extract(start_time=start_time, end_time=end_time):
             recent_count += 1
-            print(f"  Order {recent_count}: {order['id']} - ₹{order['amount']}")
+            print(f"  Customer {recent_count}: {customer['id']} - {customer['_extracted_at']}")
 
-        print(f"\n✓ Found {recent_count} orders in last 7 days")
+        print(f"\n✓ Found {recent_count} customers in last 7 days")
 
     except Exception as e:
         print(f"\n✗ Error: {e}")
@@ -108,13 +108,13 @@ def test_fetch_orders() -> bool:
     print("\n✓ Schema looks good")
 
     # Test 4: Validate a record
-    if order_count > 0:
+    if customer_count > 0:
         print("\n" + "=" * 60)
         print("5. Testing validation...")
         print("-" * 60)
 
-        test_order = next(connector.extract())
-        is_valid = connector.validate(test_order)
+        test_customer = next(connector.extract())
+        is_valid = connector.validate(test_customer)
 
         if is_valid:
             print("  ✓ Record validation passed")
@@ -130,5 +130,5 @@ def test_fetch_orders() -> bool:
 
 
 if __name__ == "__main__":
-    success = test_fetch_orders()
+    success = test_fetch_customers()
     sys.exit(0 if success else 1)

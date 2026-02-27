@@ -26,3 +26,5 @@ class RazorpaySourceConfig(BaseSettings):
     api_key: str
     api_secret: SecretStr
     base_url: str = "https://api.razorpay.com/v1"
+    timeout: int = 10
+    max_retries: int = 3

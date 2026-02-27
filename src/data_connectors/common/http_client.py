@@ -123,10 +123,10 @@ class RetryableHTTPClient:
 
         self.logger.debug("%s %s", method, url)
 
-        # Merge default headers with request headers
+        # Merge session-level headers with per-request headers, pop the headers key from kwargs.
         request_headers = dict(self.session.headers)
         if "headers" in kwargs and kwargs["headers"]:
-            request_headers.update(kwargs["headers"])
+            request_headers.update(kwargs.pop("headers"))
 
         request_kwargs = {
             "method": method,

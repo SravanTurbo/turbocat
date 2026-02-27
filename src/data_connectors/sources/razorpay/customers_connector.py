@@ -7,21 +7,22 @@ from data_connectors.common.http_client import RetryableHTTPClient
 from data_connectors.sources.razorpay.config import RazorpaySourceConfig
 
 
-class RazorpayOrdersConnector(BaseSourceConnector):
-    """Extract orders from Razorpay API."""
+class RazorpayCustomersConnector(BaseSourceConnector):
+    """Extract customers from Razorpay API."""
 
-    connector_name = "razorpay_orders"
+    connector_name = "razorpay_customers"
     config: RazorpaySourceConfig
 
     def __init__(self, config: RazorpaySourceConfig) -> None:
         super().__init__(config)
-        self.endpoint = "/orders"
+        self.endpoint = "/customers"
 
         base_url = config.base_url
         auth = (config.api_key, config.api_secret.get_secret_value())
         headers = {"Content-Type": "application/json"}
         timeout = config.timeout
         max_retries = config.max_retries
+
         self.http_client = RetryableHTTPClient(
             base_url=base_url, auth=auth, headers=headers, timeout=timeout, max_retries=max_retries
         )
@@ -33,7 +34,7 @@ class RazorpayOrdersConnector(BaseSourceConnector):
         end_time: datetime | None = None,
         state: dict[str, Any] | None = None,
     ) -> Iterator[dict[str, Any]]:
-        """Fetch orders from Razorpay with pagination."""
+        """Extract customers from Razorpay API."""
         skip = 0
         count = 100
         total_fetched = 0
@@ -48,30 +49,24 @@ class RazorpayOrdersConnector(BaseSourceConnector):
         while True:
             params = {"skip": skip, "count": count}
 
-            if start_time:
-                params["from"] = int(start_time.timestamp())
-
-            if end_time:
-                params["to"] = int(end_time.timestamp())
-
             self.logger.debug("Fetching page - params=%s", params)
 
             response = self.http_client.get(self.endpoint, params=params)
             data = response.json()
-            orders = data.get("items", [])
+            customers = data.get("items", [])
 
-            self.logger.debug(f"Received {len(orders)} orders")
+            self.logger.debug("Received %d customers", len(customers))
 
-            if not orders:
+            if not customers:
                 break
 
-            for order in orders:
-                yield self.transform(order)
+            for customer in customers:
+                yield self.transform(customer)
 
             skip += count
-            total_fetched += len(orders)
+            total_fetched += len(customers)
 
-            if len(orders) < count:
+            if len(customers) < count:
                 break
 
         self.logger.info(
@@ -81,48 +76,29 @@ class RazorpayOrdersConnector(BaseSourceConnector):
         )
 
     def transform(self, record: dict[str, Any]) -> dict[str, Any]:
-        """
-        Convert Razorpay API response to our schema format.
-
-        Transformations:
-        - amount: paise → rupees (divide by 100)
-        - created_at: UNIX timestamp → datetime
-        - Add _extracted_at for tracking
-
-        Args:
-            order: Raw order dict from Razorpay API
-
-        Returns:
-            Transformed order dict matching our schema
-        """
-
-        def _none_to_zero(value: Any) -> float:
-            return float(value) if value is not None else 0.0
-
+        """Convert Razorpay customer to our schema."""
         return {
             "id": record["id"],
-            "amount": _none_to_zero(record.get("amount")) / 100,  # Convert paise to rupees
-            "amount_paid": _none_to_zero(record.get("amount_paid")) / 100,
-            "amount_due": _none_to_zero(record.get("amount_due")) / 100,
-            "currency": record["currency"],
-            "receipt": record.get("receipt"),
-            "status": record["status"],
+            "name": record.get("name"),
+            "contact": record["contact"],
+            "email": record.get("email"),
+            "gstin": record.get("gstin"),
+            "notes": record.get("notes"),
             "created_at": datetime.fromtimestamp(record["created_at"]),
-            "_extracted_at": datetime.now(timezone.utc),  # When we fetched it
+            "_extracted_at": datetime.now(timezone.utc),
         }
 
     def get_schema(self) -> TableSchema:
-        """Define razorpay_orders table schema."""
+        """Define razorpay_customers table schema."""
         return TableSchema(
-            table_name="razorpay_orders",
+            table_name="customers",
             columns=[
                 ColumnSchema(name="id", type="string", required=True),
-                ColumnSchema(name="amount", type="float", required=True),
-                ColumnSchema(name="amount_paid", type="float", required=False),
-                ColumnSchema(name="amount_due", type="float", required=False),
-                ColumnSchema(name="currency", type="string", required=True),
-                ColumnSchema(name="receipt", type="string", required=False),
-                ColumnSchema(name="status", type="string", required=True),
+                ColumnSchema(name="name", type="string", required=False),
+                ColumnSchema(name="contact", type="datetime", required=False),
+                ColumnSchema(name="email", type="string", required=False),
+                ColumnSchema(name="gstin", type="string", required=False),
+                ColumnSchema(name="notes", type="string", required=False),
                 ColumnSchema(name="created_at", type="datetime", required=True),
                 ColumnSchema(name="_extracted_at", type="datetime", required=True),
             ],
