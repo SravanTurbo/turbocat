@@ -95,7 +95,7 @@ class RazorpayCustomersConnector(BaseSourceConnector):
             columns=[
                 ColumnSchema(name="id", type="string", required=True),
                 ColumnSchema(name="name", type="string", required=False),
-                ColumnSchema(name="contact", type="datetime", required=False),
+                ColumnSchema(name="contact", type="string", required=False),
                 ColumnSchema(name="email", type="string", required=False),
                 ColumnSchema(name="gstin", type="string", required=False),
                 ColumnSchema(name="notes", type="string", required=False),
