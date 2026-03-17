@@ -5,9 +5,9 @@ Usage:
     from data_connectors.registry import build, list_connectors
 
     connector = build("razorpay_orders")   # config loaded from env vars
-    connector = build("razorpay_customers")
+    connector = build("kapture_tickets")
 
-    print(list_connectors())  # ["razorpay_orders", "razorpay_customers"]
+    print(list_connectors())
 
 Adding a new connector:
     1. Import its class and config below
@@ -15,6 +15,8 @@ Adding a new connector:
 """
 
 from data_connectors.base.connector import BaseSourceConnector
+from data_connectors.sources.kapture.config import KaptureSourceConfig
+from data_connectors.sources.kapture.tickets_connector import KaptureTicketsConnector
 from data_connectors.sources.razorpay.config import RazorpaySourceConfig
 from data_connectors.sources.razorpay.customers_connector import RazorpayCustomersConnector
 from data_connectors.sources.razorpay.orders_connector import RazorpayOrdersConnector
@@ -24,6 +26,7 @@ from data_connectors.sources.razorpay.orders_connector import RazorpayOrdersConn
 _REGISTRY: dict[str, tuple[type[BaseSourceConnector], type]] = {
     "razorpay_orders": (RazorpayOrdersConnector, RazorpaySourceConfig),
     "razorpay_customers": (RazorpayCustomersConnector, RazorpaySourceConfig),
+    "kapture_tickets": (KaptureTicketsConnector, KaptureSourceConfig),
 }
 
 

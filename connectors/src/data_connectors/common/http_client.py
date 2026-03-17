@@ -76,12 +76,22 @@ class RetryableHTTPClient:
             total=self.max_retries,
             backoff_factor=1,
             status_forcelist=[500, 502, 503, 504],
-            allowed_methods=["GET", "PUT", "DELETE"],
+            allowed_methods=["GET", "PUT", "DELETE", "POST"],
         )
 
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
+
+    def post(
+        self,
+        endpoint: str,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> requests.Response:
+        """Make a POST request with automatic retry and rate limit handling."""
+        return self._request("POST", endpoint, json=json, params=params, headers=headers)
 
     def get(
         self,

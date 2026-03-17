@@ -5,6 +5,7 @@ import pytest
 from dotenv import load_dotenv
 
 from data_connectors.destinations.clickhouse.config import ClickHouseConfig
+from data_connectors.sources.kapture.config import KaptureSourceConfig
 from data_connectors.sources.razorpay.config import RazorpaySourceConfig
 
 load_dotenv()
@@ -15,6 +16,13 @@ def razorpay_config():
     if not os.getenv("RAZORPAY_API_KEY") or not os.getenv("RAZORPAY_API_SECRET"):
         pytest.skip("RAZORPAY_API_KEY and RAZORPAY_API_SECRET required")
     return RazorpaySourceConfig()
+
+
+@pytest.fixture(scope="session")
+def kapture_config():
+    if not os.getenv("KAPTURE_SUBDOMAIN") or not os.getenv("KAPTURE_TOKEN"):
+        pytest.skip("KAPTURE_SUBDOMAIN and KAPTURE_TOKEN required")
+    return KaptureSourceConfig()
 
 
 @pytest.fixture(scope="session")
