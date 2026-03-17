@@ -7,7 +7,7 @@ Monorepo for the data pipeline system — connector library, orchestrator, and c
 ```
 data-pipelines/
 ├── connectors/       # Connector library (pip-installable package)
-├── orchestrator/     # Control plane — Airflow DAGs + config service API
+├── orchestrator/     # Control plane — FastAPI + APScheduler + config service API
 ├── agent/            # L3 agent — runs in client's AWS account
 └── infra/            # Terraform — our infra + client account provisioning
 ```
@@ -41,8 +41,16 @@ make lint    # flake8 + mypy
 ```
 
 ### orchestrator/
-Control plane. Airflow for scheduling, FastAPI for config service API.
-_Not yet started._
+Control plane. FastAPI for the config service API, APScheduler for cron-based job scheduling.
+Manages pipeline configs, credentials (AWS Secrets Manager), agent registry, and job dispatch.
+
+```bash
+cd orchestrator
+make setup        # install deps + pre-commit hooks
+make migrate      # apply DB migrations
+make test         # run tests
+make lint         # flake8 + mypy
+```
 
 ### agent/
 Runs in client's AWS account. Polls orchestrator for jobs, executes connectors locally, writes to client's ClickHouse.
