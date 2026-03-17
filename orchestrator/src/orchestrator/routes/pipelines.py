@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -41,7 +41,7 @@ class PipelineResponse(BaseModel):
 
 
 @router.post("/bulk", response_model=list[PipelineResponse], status_code=201)
-def bulk_create_pipelines(body: BulkCreateRequest, db: Session = Depends(get_db)) -> list[Pipeline]:
+def bulk_create_pipelines(body: BulkCreateRequest, request: Request, db: Session = Depends(get_db)) -> list[Pipeline]:
     connection = db.get(Connection, body.connection_id)
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
@@ -63,7 +63,7 @@ def bulk_create_pipelines(body: BulkCreateRequest, db: Session = Depends(get_db)
     db.commit()
     for p in pipelines:
         db.refresh(p)
-        register_pipeline(p)
+        register_pipeline(p, request.app.state.session_factory)
 
     return pipelines
 

@@ -30,6 +30,7 @@ dev = [
     "black (>=26.1.0,<27.0.0)",
     "flake8 (>=7.3.0,<8.0.0)",
     "mypy (>=1.19.1,<2.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)",
     "python-dotenv (>=1.0.0,<2.0.0)",
 ]
 
@@ -40,6 +41,23 @@ target-version = ["py313"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "apscheduler.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "boto3.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "botocore.*"
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

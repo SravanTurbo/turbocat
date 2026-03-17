@@ -1,34 +1,44 @@
 import json
+from typing import Any
 
 import boto3
 from botocore.exceptions import ClientError
 
 from orchestrator.settings import settings
 
-_client = boto3.client(
-    "secretsmanager",
-    region_name=settings.aws_region,
-    aws_access_key_id=settings.aws_access_key_id or None,
-    aws_secret_access_key=settings.aws_secret_access_key or None,
-)
+_client: Any = None
+
+
+def _get_client() -> Any:
+    global _client
+    if _client is None:
+        _client = boto3.client(
+            "secretsmanager",
+            region_name=settings.aws_region,
+            aws_access_key_id=settings.aws_access_key_id or None,
+            aws_secret_access_key=settings.aws_secret_access_key or None,
+        )
+    return _client
 
 
 def put_secret(secret_ref: str, credentials: dict[str, str]) -> None:
     """Save credentials to Secrets Manager. Called once at connection creation."""
+    client = _get_client()
     try:
         # Try update first, create if it doesn't exist
         try:
-            _client.put_secret_value(SecretId=secret_ref, SecretString=json.dumps(credentials))
-        except _client.exceptions.ResourceNotFoundException:
-            _client.create_secret(Name=secret_ref, SecretString=json.dumps(credentials))
+            client.put_secret_value(SecretId=secret_ref, SecretString=json.dumps(credentials))
+        except client.exceptions.ResourceNotFoundException:
+            client.create_secret(Name=secret_ref, SecretString=json.dumps(credentials))
     except ClientError as e:
         raise RuntimeError(f"Failed to save secret '{secret_ref}': {e}") from e
 
 
 def get_secret(secret_ref: str) -> dict[str, str]:
     """Fetch and return credentials for a pipeline. Always in-memory, never logged."""
+    client = _get_client()
     try:
-        response = _client.get_secret_value(SecretId=secret_ref)
+        response = client.get_secret_value(SecretId=secret_ref)
     except ClientError as e:
         raise RuntimeError(f"Failed to fetch secret '{secret_ref}': {e}") from e
 

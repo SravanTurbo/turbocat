@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -26,10 +24,10 @@ class Pipeline(Base):
     connector: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. "razorpay_orders"
     table_name: Mapped[str] = mapped_column(String(255), nullable=False)  # source table being synced
     schedule: Mapped[str] = mapped_column(String(100), nullable=False)  # cron expression
-    params: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    params: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    agent: Mapped[Agent] = relationship("Agent")
-    connection: Mapped[Connection] = relationship("Connection", back_populates="pipelines")
-    job_runs: Mapped[list[JobRun]] = relationship("JobRun", back_populates="pipeline")
+    agent: Mapped["Agent"] = relationship("Agent")
+    connection: Mapped["Connection"] = relationship("Connection", back_populates="pipelines")
+    job_runs: Mapped[list["JobRun"]] = relationship("JobRun", back_populates="pipeline")

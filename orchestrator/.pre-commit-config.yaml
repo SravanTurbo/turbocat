@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=124, --extend-ignore=E203, --extend-ignore=W503]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.0
+    hooks:
+      - id: mypy
+        pass_filenames: false
+        args: [--config-file=orchestrator/pyproject.toml, orchestrator/src]
+        additional_dependencies:
+          - pydantic>=2.12.5
+          - pydantic-settings>=2.13.1
+          - sqlalchemy>=2.0.0
+          - fastapi

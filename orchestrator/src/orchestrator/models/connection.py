@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from __future__ import annotations
+
+import enum
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from orchestrator.models.pipeline import Pipeline
 
 
-class ConnectionStatus:
+class ConnectionStatus(str, enum.Enum):
     ACTIVE = "active"
     FAILED = "failed"
 

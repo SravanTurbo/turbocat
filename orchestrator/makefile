@@ -3,6 +3,7 @@
 setup:
 	poetry config virtualenvs.create true
 	poetry install
+	poetry run pre-commit install --install-hooks
 
 install:
 	poetry install

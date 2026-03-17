@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from orchestrator.db import get_db
 from orchestrator.models import JobRun, JobStatus, Pipeline
@@ -29,29 +29,40 @@ class StatusUpdate(BaseModel):
 
 @router.get("/pending", response_model=list[JobPayload])
 def get_pending_jobs(agent_id: uuid.UUID, db: Session = Depends(get_db)) -> list[JobPayload]:
+    # Lock matching rows so concurrent agents skip them (no duplicate dispatch)
     jobs = (
         db.query(JobRun)
-        .join(Pipeline, JobRun.pipeline_id == Pipeline.pipeline_id)
         .filter(JobRun.agent_id == agent_id, JobRun.status == JobStatus.PENDING)
+        .with_for_update(skip_locked=True)
         .all()
     )
 
-    payloads = []
-    for job in jobs:
-        credentials = get_secret(job.pipeline.connection.secret_ref)
-        job.status = JobStatus.DISPATCHED
-        payloads.append(
-            JobPayload(
-                job_id=job.job_id,
-                pipeline_id=job.pipeline_id,
-                connector=job.pipeline.connector,
-                params=job.pipeline.params,
-                credentials=credentials,
-            )
-        )
+    if not jobs:
+        return []
 
-    db.commit()
-    return payloads
+    job_ids = [job.job_id for job in jobs]
+    for job in jobs:
+        job.status = JobStatus.DISPATCHED
+    db.commit()  # release locks; jobs are now claimed
+
+    # Reload with relationships to avoid N+1 queries per job
+    jobs_with_rels = (
+        db.query(JobRun)
+        .filter(JobRun.job_id.in_(job_ids))
+        .options(joinedload(JobRun.pipeline).joinedload(Pipeline.connection))
+        .all()
+    )
+
+    return [
+        JobPayload(
+            job_id=job.job_id,
+            pipeline_id=job.pipeline_id,
+            connector=job.pipeline.connector,
+            params=job.pipeline.params,
+            credentials=get_secret(job.pipeline.connection.secret_ref),
+        )
+        for job in jobs_with_rels
+    ]
 
 
 @router.post("/{job_id}/status")
