@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-dev-role
+spec:
+  template:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-dev-role
+    spec:
+      containers:
+      - name: orchestrator
+        env:
+        - name: AWS_REGION
+          value: "ap-south-1"
+        - name: ENV
+          value: "dev"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orchestrator
+  annotations:
+    alb.ingress.kubernetes.io/group.name: "development-eks"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-south-1:767397958941:certificate/f5103989-0150-45fd-b2b4-91f0412a8056"
+    alb.ingress.kubernetes.io/subnets: "subnet-01ae95b7ef3053518, subnet-0f710b6542fb67c7d"
+    alb.ingress.kubernetes.io/tags: "Environment=development"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-path: "/health"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
+spec:
+  rules:
+  - host: orchestrator-api.goheartbeat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ssl-redirect
+            port:
+              name: use-annotation
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: orchestrator
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orchestrator
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-dev-role

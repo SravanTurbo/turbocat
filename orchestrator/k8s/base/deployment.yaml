@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  labels:
+    app: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+      managed-by: kustomize
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+        managed-by: kustomize
+      annotations:
+        eks.amazonaws.com/role-arn: ""  # Will be patched per environment
+    spec:
+      serviceAccountName: orchestrator
+      containers:
+      - name: orchestrator
+        image: 767397958941.dkr.ecr.ap-south-1.amazonaws.com/orchestrator:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: AWS_REGION
+          value: "ap-south-1"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 20
