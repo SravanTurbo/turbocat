@@ -133,7 +133,15 @@ class ClickHouseDestination(BaseDestinationConnector):
 
             column_defs.append(f"`{col.name}` {ch_type}")
 
-        create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(column_defs)}) ENGINE = MergeTree ORDER BY (id)"
+        version_col = next(
+            (col.name for col in schema.columns if col.name == "_extracted_at"), None
+        )
+        engine = (
+            f"ReplacingMergeTree({version_col})"
+            if version_col
+            else "ReplacingMergeTree()"
+        )
+        create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(column_defs)}) ENGINE = {engine} ORDER BY (id)"
 
         self.logger.debug("Ensuring table exists: %s", table_name)
 
@@ -165,7 +173,9 @@ class ClickHouseDestination(BaseDestinationConnector):
 
         return type_mapping.get(type, "String")
 
-    def _execute_batch_insert(self, table_name: str, records: list[dict[str, Any]], schema: TableSchema) -> None:
+    def _execute_batch_insert(
+        self, table_name: str, records: list[dict[str, Any]], schema: TableSchema
+    ) -> None:
         # Convert records to tuples (ordered by schema columns).
         column_names = [col.name for col in schema.columns]
         rows = []
@@ -179,7 +189,9 @@ class ClickHouseDestination(BaseDestinationConnector):
 
         try:
             self.client.execute(insert_sql, rows)
-            self.logger.info("✓ Successfully inserted %d rows into table: %s", len(rows), table_name)
+            self.logger.info(
+                "✓ Successfully inserted %d rows into table: %s", len(rows), table_name
+            )
         except Exception as e:
             self.logger.error("Failed to load records to table '%s': %s", table_name, e)
             raise

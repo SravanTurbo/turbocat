@@ -19,15 +19,32 @@ class Pipeline(Base):
 
     pipeline_id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     account_id: Mapped[uuid.UUID] = mapped_column(nullable=False, index=True)
-    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agents.agent_id"), nullable=False)
-    connection_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("connections.connection_id"), nullable=False)
-    connector: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. "razorpay_orders"
-    table_name: Mapped[str] = mapped_column(String(255), nullable=False)  # source table being synced
-    schedule: Mapped[str] = mapped_column(String(100), nullable=False)  # cron expression
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agents.agent_id"), nullable=False
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("connections.connection_id"), nullable=False
+    )
+    connector: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # e.g. "razorpay_orders"
+    table_name: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )  # source table being synced
+    schedule: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # cron expression
     params: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    state: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB, nullable=True
+    )  # cursor from last successful sync
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     agent: Mapped["Agent"] = relationship("Agent")
-    connection: Mapped["Connection"] = relationship("Connection", back_populates="pipelines")
+    connection: Mapped["Connection"] = relationship(
+        "Connection", back_populates="pipelines"
+    )
     job_runs: Mapped[list["JobRun"]] = relationship("JobRun", back_populates="pipeline")

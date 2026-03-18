@@ -60,7 +60,7 @@ class SyncResult:
         duration_seconds:  Wall-clock time for the full sync
         next_state:        Cursor dict the orchestrator should store and pass
                            back as `state` on the next run.
-                           e.g. {"cursor": "2024-01-02T00:00:00Z"}
+                           e.g. {"last_sync_at": "2024-01-02T00:00:00Z"}
         error:             Exception message, only set when status == "error"
     """
 

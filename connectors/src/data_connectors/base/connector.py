@@ -42,6 +42,7 @@ class BaseSourceConnector(BaseConnector):
 
     validate() and sync() are already implemented here and shared
     by every source connector for free.
+
     """
 
     @abstractmethod
@@ -58,7 +59,7 @@ class BaseSourceConnector(BaseConnector):
             start_time: Only return records after this time  (incremental sync)
             end_time:   Only return records before this time (incremental sync)
             state:      Checkpoint from the last successful sync, e.g.
-                        {"cursor": "2024-01-15T12:00:00Z"}
+                        {"last_sync_at": "2024-01-15T12:00:00Z"}
 
         Yields:
             One record at a time as a plain dict:
@@ -102,7 +103,9 @@ class BaseSourceConnector(BaseConnector):
         schema = self.get_schema()
         for field_name in schema.required_column_names():
             if field_name not in record or record[field_name] is None:
-                self.logger.warning("Record skipped — missing required field '%s'", field_name)
+                self.logger.warning(
+                    "Record skipped — missing required field '%s'", field_name
+                )
                 return False
         return True
 
@@ -172,7 +175,9 @@ class BaseSourceConnector(BaseConnector):
             return loaded
 
         try:
-            for record in self.extract(start_time=start_time, end_time=end_time, state=state):
+            for record in self.extract(
+                start_time=start_time, end_time=end_time, state=state
+            ):
                 records_extracted += 1
 
                 if not self.validate(record):
@@ -189,7 +194,9 @@ class BaseSourceConnector(BaseConnector):
                 records_loaded += _flush(batch)
 
             duration = time.time() - started
-            next_state = {"cursor": end_time.isoformat()} if end_time else (state or {})
+            next_state = (
+                {"last_sync_at": end_time.isoformat()} if end_time else (state or {})
+            )
 
             result = SyncResult(
                 status="success",
