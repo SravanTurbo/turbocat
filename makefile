@@ -3,7 +3,7 @@
 	orchestrator-deploy orchestrator-deploy-only orchestrator-preview orchestrator-rollback orchestrator-status
 
 # ── Config ────────────────────────────────────────────────────
-AWS_REGION    := ap-south-1
+AWS_REGION    ?= ap-south-1
 AWS_ACCOUNT   := 767397958941
 ORCHESTRATOR  := orchestrator
 IMAGE         := $(AWS_ACCOUNT).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ORCHESTRATOR)
