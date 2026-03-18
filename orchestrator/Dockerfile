@@ -32,6 +32,7 @@ COPY --from=builder /workspace/orchestrator /app
 WORKDIR /app
 
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/src"
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000

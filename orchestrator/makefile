@@ -1,5 +1,5 @@
 .PHONY: setup install install-prod lint format test test-integration migrate migrate-down migration run \
-	setup-iam ecr-login build push deploy deploy-only preview rollback status
+	setup-iam ecr-login build build-local run-docker push deploy deploy-only preview rollback status
 
 ENV ?= local
 
@@ -110,6 +110,20 @@ ecr-login:
 		aws ecr get-login-password --region $(AWS_REGION) | \
 			docker login --username AWS --password-stdin $(AWS_ACCOUNT).dkr.ecr.$(AWS_REGION).amazonaws.com \
 	'
+
+# Build for local testing (native platform, no ECR tag)
+build-local:
+	docker buildx build --load \
+		-t $(ORCHESTRATOR):local \
+		-f $(CURDIR)/Dockerfile \
+		$(REPO_ROOT)
+
+# Run the locally built image — requires src/orchestrator/.env.local to exist
+run-docker: build-local
+	docker run --rm \
+		--env-file $(CURDIR)/src/orchestrator/.env.local \
+		-p 8000:8000 \
+		$(ORCHESTRATOR):local
 
 build:
 	@[ -n "$(ENV)" ] || { echo "ENV required (dev|prod)"; exit 1; }
