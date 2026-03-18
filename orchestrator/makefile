@@ -1,4 +1,4 @@
-.PHONY: setup install install-prod lint format test test-integration migrate migrate-down migration
+.PHONY: setup install install-prod lint format test test-integration migrate migrate-down migration run
 
 ENV ?= local
 
@@ -25,6 +25,9 @@ test:
 
 test-integration:
 	poetry run pytest tests/integration/ -s -v
+
+run:
+	APP_ENV=$(ENV) poetry run python -m uvicorn orchestrator.main:app --reload --port 8000
 
 migrate:
 	APP_ENV=$(ENV) poetry run alembic upgrade head
