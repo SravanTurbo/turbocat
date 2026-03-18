@@ -33,8 +33,8 @@ connectors-format:
 # ── Orchestrator: ECR login (handles MFA if needed) ───────────
 orchestrator-ecr-login:
 	@bash -c '\
-		if aws sts get-caller-identity > /dev/null 2>&1; then \
-			echo "[INFO] AWS credentials valid."; \
+		if [ -n "$$AWS_SESSION_TOKEN" ]; then \
+			echo "[INFO] MFA session active."; \
 		else \
 			echo "[INFO] Credentials expired — initiating MFA session..."; \
 			MFA_SERIAL=$$(aws iam list-mfa-devices --query "MFADevices[0].SerialNumber" --output text); \
@@ -54,8 +54,8 @@ orchestrator-ecr-login:
 # Run once before first deploy: make orchestrator-setup-iam
 orchestrator-setup-iam:
 	@bash -c '\
-		if aws sts get-caller-identity > /dev/null 2>&1; then \
-			echo "[INFO] AWS credentials valid."; \
+		if [ -n "$$AWS_SESSION_TOKEN" ]; then \
+			echo "[INFO] MFA session active."; \
 		else \
 			echo "[INFO] Credentials expired — initiating MFA session..."; \
 			MFA_SERIAL=$$(aws iam list-mfa-devices --query "MFADevices[0].SerialNumber" --output text); \
@@ -103,8 +103,8 @@ orchestrator-deploy:
 	@[ -n "$(ENV)" ] || { echo "ENV required (dev|prod)"; exit 1; }
 	@bash -c '\
 		[ "$(ENV)" != "prod" ] || [ "$(GIT_BRANCH)" = "main" ] || { echo "Prod deploy requires main branch"; exit 1; }; \
-		if aws sts get-caller-identity > /dev/null 2>&1; then \
-			echo "[INFO] AWS credentials valid."; \
+		if [ -n "$$AWS_SESSION_TOKEN" ]; then \
+			echo "[INFO] MFA session active."; \
 		else \
 			echo "[INFO] Credentials expired — initiating MFA session..."; \
 			MFA_SERIAL=$$(aws iam list-mfa-devices --query "MFADevices[0].SerialNumber" --output text); \
