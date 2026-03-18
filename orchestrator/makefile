@@ -81,11 +81,17 @@ setup-iam:
 		echo "Creating dev IAM role..."; \
 		aws iam create-role --role-name orchestrator-dev-role \
 			--assume-role-policy-document file://$(AWS_DIR)/trust-policy-dev.json 2>/dev/null || echo "  dev role already exists, skipping"; \
+		echo "Updating dev trust policy..."; \
+		aws iam update-assume-role-policy --role-name orchestrator-dev-role \
+			--policy-document file://$(AWS_DIR)/trust-policy-dev.json; \
 		aws iam attach-role-policy --role-name orchestrator-dev-role \
 			--policy-arn arn:aws:iam::$(AWS_ACCOUNT):policy/orchestrator-policy; \
 		echo "Creating prod IAM role..."; \
 		aws iam create-role --role-name orchestrator-role \
 			--assume-role-policy-document file://$(AWS_DIR)/trust-policy-prod.json 2>/dev/null || echo "  prod role already exists, skipping"; \
+		echo "Updating prod trust policy..."; \
+		aws iam update-assume-role-policy --role-name orchestrator-role \
+			--policy-document file://$(AWS_DIR)/trust-policy-prod.json; \
 		aws iam attach-role-policy --role-name orchestrator-role \
 			--policy-arn arn:aws:iam::$(AWS_ACCOUNT):policy/orchestrator-policy; \
 		echo "AWS setup complete" \
@@ -164,6 +170,7 @@ deploy:
 		docker push $(IMAGE):$(ORCHESTRATOR)-$(GIT_SHA); \
 		docker push $(IMAGE):$(ENV)-latest; \
 		kubectl apply -k $(K8S_DIR)/overlays/$(ENV) --server-side=true --force-conflicts=true --context=$(KUBE_CONTEXT); \
+		kubectl rollout restart deployment/$(ORCHESTRATOR) -n services --context=$(KUBE_CONTEXT); \
 		kubectl rollout status deployment/$(ORCHESTRATOR) -n services --context=$(KUBE_CONTEXT) --timeout=5m \
 	'
 
