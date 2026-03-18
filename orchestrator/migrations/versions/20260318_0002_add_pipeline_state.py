@@ -18,9 +18,12 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+SCHEMA = "pipeline_schema"
+
+
 def upgrade() -> None:
-    op.add_column("pipelines", sa.Column("state", JSONB, nullable=True))
+    op.add_column("pipelines", sa.Column("state", JSONB, nullable=True), schema=SCHEMA)
 
 
 def downgrade() -> None:
-    op.drop_column("pipelines", "state")
+    op.drop_column("pipelines", "state", schema=SCHEMA)

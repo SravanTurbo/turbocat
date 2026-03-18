@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_ENV_FILE = Path(__file__).parent / ".env"
+_APP_ENV = os.getenv("APP_ENV", "local")
+_ENV_FILE = Path(__file__).parent / f".env.{_APP_ENV}"
 
 
 class Settings(BaseSettings):
