@@ -1,5 +1,7 @@
-.PHONY: setup install install-prod lint format test test-integration \
+.PHONY: setup install install-prod lint format test test-integration migrate migrate-down migration run \
 	setup-iam ecr-login build push deploy deploy-only preview rollback status
+
+ENV ?= local
 
 # ── Config ────────────────────────────────────────────────────
 AWS_REGION   ?= ap-south-1
@@ -42,14 +44,17 @@ test:
 test-integration:
 	poetry run pytest tests/integration/ -s -v
 
+run:
+	APP_ENV=$(ENV) poetry run python -m uvicorn orchestrator.main:app --reload --port 8000
+
 migrate:
-	poetry run alembic upgrade head
+	APP_ENV=$(ENV) poetry run alembic upgrade head
 
 migrate-down:
-	poetry run alembic downgrade -1
+	APP_ENV=$(ENV) poetry run alembic downgrade -1
 
 migration:
-	poetry run alembic revision --autogenerate -m "$(name)"
+	APP_ENV=$(ENV) poetry run alembic revision --autogenerate -m "$(name)"
 
 # ── AWS setup (run once) ──────────────────────────────────────
 setup-iam:
