@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::767397958941:oidc-provider/oidc.eks.ap-south-1.amazonaws.com/id/42B0AA75CFAEC242FFD1E03F80800935"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.ap-south-1.amazonaws.com/id/42B0AA75CFAEC242FFD1E03F80800935:sub": "system:serviceaccount:services:orchestrator"
+                }
+            }
+        }
+    ]
+}

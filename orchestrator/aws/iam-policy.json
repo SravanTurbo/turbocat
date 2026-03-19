@@ -1,0 +1,28 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParameters",
+                "ssm:GetParametersByPath"
+            ],
+            "Resource": [
+                "arn:aws:ssm:ap-south-1:767397958941:parameter/data-pipelines-dev.*",
+                "arn:aws:ssm:ap-south-1:767397958941:parameter/data-pipelines.*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret"
+            ],
+            "Resource": [
+                "arn:aws:secretsmanager:ap-south-1:767397958941:secret:data-pipelines-dev.*",
+                "arn:aws:secretsmanager:ap-south-1:767397958941:secret:data-pipelines.*"
+            ]
+        }
+    ]
+}
