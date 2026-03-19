@@ -16,8 +16,12 @@ spec:
         env:
         - name: AWS_REGION
           value: "ap-south-1"
-        - name: ENV
+        - name: APP_ENV
           value: "prod"
+        - name: CONFIG_PROVIDER
+          value: "aws"
+        - name: AWS_PARAM_PREFIX
+          value: "data-pipelines"
         resources:
           requests:
             cpu: "200m"

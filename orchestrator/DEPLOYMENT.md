@@ -75,15 +75,20 @@ export AWS_SECRET_ACCESS_KEY=...
 | Dev IAM role | `arn:aws:iam::767397958941:role/orchestrator-dev-role` |
 | Prod IAM role | `arn:aws:iam::767397958941:role/orchestrator-role` |
 
-## Secrets
+## Secrets / Config
 
-The orchestrator reads `database_url` from AWS Secrets Manager at runtime. The secret must exist at:
+The orchestrator fetches config from SSM Parameter Store and Secrets Manager at startup using the `AWS_PARAM_PREFIX` path.
 
-```
-orchestrator/database_url
-```
+| Key | Store | Dev path | Prod path |
+|---|---|---|---|
+| `database.host` | SSM | `data-pipelines-dev.database.host` | `data-pipelines.database.host` |
+| `database.port` | SSM | `data-pipelines-dev.database.port` | `data-pipelines.database.port` |
+| `database.user` | SSM | `data-pipelines-dev.database.user` | `data-pipelines.database.user` |
+| `database.name` | SSM | `data-pipelines-dev.database.name` | `data-pipelines.database.name` |
+| `database.password` | Secrets Manager | `data-pipelines-dev.database.password` | `data-pipelines.database.password` |
+| `scheduler.poll_interval_seconds` | SSM | `data-pipelines-dev.scheduler.poll_interval_seconds` | `data-pipelines.scheduler.poll_interval_seconds` |
 
-The pod has IAM permissions (via IRSA) to read any secret under the `orchestrator/*` path.
+The pod has IAM permissions (via IRSA) to read from the `data-pipelines-dev.*` (dev) and `data-pipelines.*` (prod) paths.
 
 ## k8s Structure
 
