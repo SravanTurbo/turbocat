@@ -21,10 +21,10 @@ spec:
         resources:
           requests:
             cpu: "200m"
-            memory: "512Mi"
+            memory: "256Mi"
           limits:
-            cpu: "1000m"
-            memory: "1Gi"
+            cpu: "400m"
+            memory: "512Mi"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
