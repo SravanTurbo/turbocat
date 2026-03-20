@@ -2,10 +2,10 @@
 Connector registry — factory and discovery for all source connectors.
 
 Usage:
-    from data_connectors.registry import build, list_connectors
+    from data_connectors.registry import build, lookup, list_connectors
 
-    connector = build("razorpay_orders")   # config loaded from env vars
-    connector = build("kapture_tickets")
+    connector = build("razorpay_orders")          # config loaded from env vars
+    cls, cfg_cls = lookup("razorpay_orders")      # caller handles instantiation
 
     print(list_connectors())
 
@@ -18,7 +18,9 @@ from data_connectors.base.connector import BaseSourceConnector
 from data_connectors.sources.kapture.config import KaptureSourceConfig
 from data_connectors.sources.kapture.tickets_connector import KaptureTicketsConnector
 from data_connectors.sources.razorpay.config import RazorpaySourceConfig
-from data_connectors.sources.razorpay.customers_connector import RazorpayCustomersConnector
+from data_connectors.sources.razorpay.customers_connector import (
+    RazorpayCustomersConnector,
+)
 from data_connectors.sources.razorpay.orders_connector import RazorpayOrdersConnector
 
 # Maps connector name -> (ConnectorClass, ConfigClass)
@@ -48,6 +50,22 @@ def build(name: str) -> BaseSourceConnector:
         raise KeyError(f"Unknown connector {name!r}. Available: {available}")
     connector_cls, config_cls = _REGISTRY[name]
     return connector_cls(config_cls())
+
+
+def lookup(name: str) -> tuple[type[BaseSourceConnector], type]:
+    """
+    Return (ConnectorClass, ConfigClass) for the given connector name.
+
+    The caller is responsible for instantiating the config and the connector.
+    Use this when you need to inject credentials or params directly rather than
+    reading from environment variables (e.g. in the agent executor).
+
+    Raises:
+        KeyError: if the name is not in the registry
+    """
+    if name not in _REGISTRY:
+        raise KeyError(f"Unknown connector {name!r}. Available: {list(_REGISTRY)}")
+    return _REGISTRY[name]
 
 
 def list_connectors() -> list[str]:
