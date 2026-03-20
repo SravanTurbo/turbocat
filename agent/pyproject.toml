@@ -1,0 +1,45 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Polling agent — executes connector jobs dispatched by the orchestrator"
+authors = [
+    {name = "sra1turbo",email = "sra1turibilli@gmail.com"}
+]
+requires-python = ">=3.13,<4"
+dependencies = [
+    "requests (>=2.32.5,<3.0.0)",
+    "pydantic (>=2.12.5,<3.0.0)",
+    "pydantic-settings (>=2.13.1,<3.0.0)",
+    "data-connectors",
+]
+
+[tool.poetry.dependencies]
+data-connectors = {path = "../connectors", develop = true}
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "black (>=26.1.0,<27.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "mypy (>=1.19.1,<2.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)",
+    "python-dotenv (>=1.0.0,<2.0.0)",
+    "types-requests (>=2.32.4.20260107,<3.0.0.0)",
+]
+
+[tool.black]
+line-length = 124
+target-version = ["py313"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
