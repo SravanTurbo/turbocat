@@ -40,6 +40,14 @@ plugins = ["pydantic.mypy"]
 init_forbid_extra = true
 init_typed = true
 
+[[tool.mypy.overrides]]
+module = "clickhouse_driver.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "data_connectors.*"
+ignore_missing_imports = true
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
