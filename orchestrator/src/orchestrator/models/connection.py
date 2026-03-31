@@ -23,22 +23,13 @@ class ConnectionStatus(str, enum.Enum):
 class Connection(Base):
     __tablename__ = "connections"
 
-    connection_id: Mapped[uuid.UUID] = mapped_column(
-        primary_key=True, default=uuid.uuid4
-    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     account_id: Mapped[uuid.UUID] = mapped_column(nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     source: Mapped[str] = mapped_column(String(100), nullable=False)
     secret_ref: Mapped[str] = mapped_column(String(255), nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=ConnectionStatus.UNTESTED
-    )
-    last_tested_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, default=None
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default=ConnectionStatus.UNTESTED)
+    last_tested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    pipelines: Mapped[list[Pipeline]] = relationship(
-        "Pipeline", back_populates="connection"
-    )
+    pipelines: Mapped[list[Pipeline]] = relationship("Pipeline", back_populates="connection")

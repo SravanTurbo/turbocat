@@ -25,6 +25,7 @@ class TestConnectionRequest(BaseModel):
 
 class CreateConnectionRequest(BaseModel):
     account_id: uuid.UUID
+    name: str
     source: str
     credentials: dict[str, str]
 
@@ -32,6 +33,7 @@ class CreateConnectionRequest(BaseModel):
 class ConnectionResponse(BaseModel):
     connection_id: uuid.UUID
     account_id: uuid.UUID
+    name: str
     source: str
     status: str
     last_tested_at: datetime | None
@@ -49,9 +51,7 @@ class TableEntry(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _run_test(
-    source: str, credentials: dict[str, str]
-) -> tuple[ConnectionStatus, str | None]:
+def _run_test(source: str, credentials: dict[str, str]) -> tuple[ConnectionStatus, str | None]:
     """
     Attempt a live connection test for the given source and credentials.
 
@@ -92,9 +92,7 @@ def test_connection(body: TestConnectionRequest) -> dict[str, object]:
 
 
 @router.post("/", response_model=ConnectionResponse, status_code=201)
-def create_connection(
-    body: CreateConnectionRequest, db: Session = Depends(get_db)
-) -> Connection:
+def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_db)) -> Connection:
     """
     Save credentials to Secrets Manager and register the connection.
 
@@ -108,6 +106,7 @@ def create_connection(
 
     connection = Connection(
         account_id=body.account_id,
+        name=body.name,
         source=body.source,
         secret_ref=secret_ref,
         status=status,
@@ -120,9 +119,7 @@ def create_connection(
 
 
 @router.get("/", response_model=list[ConnectionResponse])
-def list_connections(
-    account_id: uuid.UUID | None = None, db: Session = Depends(get_db)
-) -> list[Connection]:
+def list_connections(account_id: uuid.UUID | None = None, db: Session = Depends(get_db)) -> list[Connection]:
     """
     List all connections, optionally filtered by account_id.
 
@@ -135,9 +132,7 @@ def list_connections(
 
 
 @router.post("/{connection_id}/test")
-def test_saved_connection(
-    connection_id: uuid.UUID, db: Session = Depends(get_db)
-) -> dict[str, object]:
+def test_saved_connection(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> dict[str, object]:
     """
     Re-test an existing connection using its stored credentials.
 
@@ -160,9 +155,7 @@ def test_saved_connection(
 
 
 @router.get("/{connection_id}/schema", response_model=list[TableEntry])
-def list_schema(
-    connection_id: uuid.UUID, db: Session = Depends(get_db)
-) -> list[TableEntry]:
+def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list[TableEntry]:
     """Return available connectors and their destination table names for a source."""
     connection = db.get(Connection, connection_id)
     if not connection:
@@ -175,6 +168,4 @@ def list_schema(
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=502, detail=f"Failed to fetch schema: {exc}"
-        ) from exc
+        raise HTTPException(status_code=502, detail=f"Failed to fetch schema: {exc}") from exc
