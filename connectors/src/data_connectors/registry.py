@@ -31,6 +31,13 @@ _REGISTRY: dict[str, tuple[type[BaseSourceConnector], type]] = {
     "kapture_tickets": (KaptureTicketsConnector, KaptureSourceConfig),
 }
 
+# Maps source name -> (representative ConnectorClass, ConfigClass)
+# One entry per source; the representative connector is used for connection testing.
+_SOURCE_REGISTRY: dict[str, tuple[type[BaseSourceConnector], type]] = {
+    "razorpay": (RazorpayOrdersConnector, RazorpaySourceConfig),
+    "kapture": (KaptureTicketsConnector, KaptureSourceConfig),
+}
+
 
 def build(name: str) -> BaseSourceConnector:
     """
@@ -71,3 +78,37 @@ def lookup(name: str) -> tuple[type[BaseSourceConnector], type]:
 def list_connectors() -> list[str]:
     """Return the names of all registered connectors."""
     return list(_REGISTRY)
+
+
+def build_from_credentials(
+    source: str, credentials: dict[str, str]
+) -> BaseSourceConnector:
+    """
+    Instantiate the representative connector for a source using caller-supplied credentials.
+
+    Unlike build(), this does NOT read from environment variables — credentials
+    are passed directly and override any env vars that happen to be present.
+
+    Args:
+        source:      Source name, e.g. "razorpay" or "kapture"
+        credentials: Flat dict of credential key/value pairs matching the
+                     source's config fields (e.g. {"api_key": "...", "api_secret": "..."})
+
+    Returns:
+        An initialised BaseSourceConnector ready to call test_connection()
+
+    Raises:
+        KeyError:            if source is not in _SOURCE_REGISTRY
+        ValidationError:     if credentials are missing required fields
+    """
+    if source not in _SOURCE_REGISTRY:
+        available = list(_SOURCE_REGISTRY)
+        raise KeyError(f"Unknown source {source!r}. Available: {available}")
+    connector_cls, config_cls = _SOURCE_REGISTRY[source]
+    config = config_cls(**credentials)
+    return connector_cls(config)
+
+
+def list_sources() -> list[str]:
+    """Return the names of all registered sources."""
+    return list(_SOURCE_REGISTRY)

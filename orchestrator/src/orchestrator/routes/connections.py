@@ -1,5 +1,7 @@
 import uuid
+from datetime import datetime, timezone
 
+from data_connectors.registry import build_from_credentials
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -9,6 +11,11 @@ from orchestrator.models import Connection, ConnectionStatus
 from orchestrator.secrets import get_secret, put_secret
 
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Request / response schemas
+# ---------------------------------------------------------------------------
 
 
 class TestConnectionRequest(BaseModel):
@@ -27,42 +34,84 @@ class ConnectionResponse(BaseModel):
     account_id: uuid.UUID
     source: str
     status: str
+    last_tested_at: datetime | None
 
     model_config = {"from_attributes": True}
 
 
-def _get_source_client(source: str, credentials: dict[str, str]):  # type: ignore[no-untyped-def]
-    """Instantiate a source client using the registry. Raises if source is unknown."""
-    # TODO: replace with connector registry lookup once registry is built
-    # from data_connectors.registry import get_source_client
-    # return get_source_client(source, credentials)
-    raise NotImplementedError(f"Connector registry not yet implemented: {source}")
+class TableEntry(BaseModel):
+    connector: str
+    table_name: str
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _run_test(
+    source: str, credentials: dict[str, str]
+) -> tuple[ConnectionStatus, str | None]:
+    """
+    Attempt a live connection test for the given source and credentials.
+
+    An HTTP 200 with empty results is a pass — we only care that the server
+    accepted our auth (no 401/403), matching how Fivetran tests REST sources.
+
+    Returns (ConnectionStatus.ACTIVE, None) on success or
+            (ConnectionStatus.FAILED, error_message) on failure.
+    Raises HTTPException(400) if the source name is unknown.
+    """
+    try:
+        connector = build_from_credentials(source, credentials)
+        connector.test_connection()
+        return ConnectionStatus.ACTIVE, None
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        return ConnectionStatus.FAILED, str(exc)
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
 
 @router.post("/test")
 def test_connection(body: TestConnectionRequest) -> dict[str, object]:
-    """Validate credentials against the source. Never persists anything."""
-    try:
-        client = _get_source_client(body.source, body.credentials)
-        client.test_connection()
+    """
+    Validate credentials against the source API. Never persists anything.
+
+    An empty account (no records yet) still returns success — we verify
+    that auth was accepted, not that data exists.
+    """
+    status, error = _run_test(body.source, body.credentials)
+    if status == ConnectionStatus.ACTIVE:
         return {"success": True}
-    except NotImplementedError:
-        raise HTTPException(status_code=501, detail="Connector registry not yet implemented")
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    return {"success": False, "error": error}
 
 
 @router.post("/", response_model=ConnectionResponse, status_code=201)
-def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_db)) -> Connection:
-    """Save credentials to Secrets Manager and register the connection."""
+def create_connection(
+    body: CreateConnectionRequest, db: Session = Depends(get_db)
+) -> Connection:
+    """
+    Save credentials to Secrets Manager and register the connection.
+
+    Always persists regardless of whether the credential test passes.
+    status is set to 'active' or 'failed' based on the test result.
+    """
     secret_ref = f"orchestrator/{body.account_id}/{body.source}"
     put_secret(secret_ref, body.credentials)
+
+    status, _ = _run_test(body.source, body.credentials)
 
     connection = Connection(
         account_id=body.account_id,
         source=body.source,
         secret_ref=secret_ref,
-        status=ConnectionStatus.ACTIVE,
+        status=status,
+        last_tested_at=datetime.now(timezone.utc),
     )
     db.add(connection)
     db.commit()
@@ -70,13 +119,50 @@ def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_d
     return connection
 
 
-class TableEntry(BaseModel):
-    connector: str  # e.g. "razorpay_orders"
-    table_name: str  # destination ClickHouse table e.g. "orders"
+@router.get("/", response_model=list[ConnectionResponse])
+def list_connections(
+    account_id: uuid.UUID | None = None, db: Session = Depends(get_db)
+) -> list[Connection]:
+    """
+    List all connections, optionally filtered by account_id.
+
+    Each record includes status (untested | active | failed) and last_tested_at.
+    """
+    query = db.query(Connection)
+    if account_id is not None:
+        query = query.filter(Connection.account_id == account_id)
+    return query.order_by(Connection.created_at.desc()).all()
+
+
+@router.post("/{connection_id}/test")
+def test_saved_connection(
+    connection_id: uuid.UUID, db: Session = Depends(get_db)
+) -> dict[str, object]:
+    """
+    Re-test an existing connection using its stored credentials.
+
+    Updates status and last_tested_at in place.
+    """
+    connection = db.get(Connection, connection_id)
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    credentials = get_secret(connection.secret_ref)
+    status, error = _run_test(connection.source, credentials)
+
+    connection.status = status
+    connection.last_tested_at = datetime.now(timezone.utc)
+    db.commit()
+
+    if status == ConnectionStatus.ACTIVE:
+        return {"success": True}
+    return {"success": False, "error": error}
 
 
 @router.get("/{connection_id}/schema", response_model=list[TableEntry])
-def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list[TableEntry]:
+def list_schema(
+    connection_id: uuid.UUID, db: Session = Depends(get_db)
+) -> list[TableEntry]:
     """Return available connectors and their destination table names for a source."""
     connection = db.get(Connection, connection_id)
     if not connection:
@@ -84,10 +170,11 @@ def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list
 
     credentials = get_secret(connection.secret_ref)
     try:
-        client = _get_source_client(connection.source, credentials)
-        # list_tables() returns [{"connector": "razorpay_orders", "table_name": "orders"}, ...]
-        return [TableEntry(**entry) for entry in client.list_tables()]
-    except NotImplementedError:
-        raise HTTPException(status_code=501, detail="Connector registry not yet implemented")
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch schema: {e}") from e
+        connector = build_from_credentials(connection.source, credentials)
+        return [TableEntry(**entry) for entry in connector.list_tables()]
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to fetch schema: {exc}"
+        ) from exc

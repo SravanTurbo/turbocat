@@ -23,9 +23,19 @@ class RazorpayOrdersConnector(BaseSourceConnector):
         timeout = config.timeout
         max_retries = config.max_retries
         self.http_client = RetryableHTTPClient(
-            base_url=base_url, auth=auth, headers=headers, timeout=timeout, max_retries=max_retries
+            base_url=base_url,
+            auth=auth,
+            headers=headers,
+            timeout=timeout,
+            max_retries=max_retries,
         )
-        self.logger.info("%s connector initialized — base_url=%s", self.connector_name, base_url)
+        self.logger.info(
+            "%s connector initialized — base_url=%s", self.connector_name, base_url
+        )
+
+    def test_connection(self) -> None:
+        """Fetch one order to confirm credentials are valid."""
+        self.http_client.get(self.endpoint, params={"count": 1})
 
     def extract(
         self,
@@ -101,7 +111,8 @@ class RazorpayOrdersConnector(BaseSourceConnector):
 
         return {
             "id": record["id"],
-            "amount": _none_to_zero(record.get("amount")) / 100,  # Convert paise to rupees
+            "amount": _none_to_zero(record.get("amount"))
+            / 100,  # Convert paise to rupees
             "amount_paid": _none_to_zero(record.get("amount_paid")) / 100,
             "amount_due": _none_to_zero(record.get("amount_due")) / 100,
             "currency": record["currency"],
