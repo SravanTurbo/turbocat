@@ -38,6 +38,13 @@ _SOURCE_REGISTRY: dict[str, tuple[type[BaseSourceConnector], type]] = {
     "kapture": (KaptureTicketsConnector, KaptureSourceConfig),
 }
 
+# Maps source name -> all connector names under that source.
+# Used to enumerate available entities/tables for a given connection.
+_SOURCE_CONNECTORS: dict[str, list[str]] = {
+    "razorpay": ["razorpay_orders", "razorpay_customers"],
+    "kapture": ["kapture_tickets"],
+}
+
 
 def build(name: str) -> BaseSourceConnector:
     """
@@ -112,3 +119,37 @@ def build_from_credentials(
 def list_sources() -> list[str]:
     """Return the names of all registered sources."""
     return list(_SOURCE_REGISTRY)
+
+
+def get_schemas_for_source(
+    source: str, credentials: dict[str, str]
+) -> list[dict[str, str]]:
+    """
+    Return the connector name and destination table name for every entity
+    available under a source.
+
+    For SaaS sources (Razorpay, Kapture) this reflects the registered connectors
+    — no live API call is made. The table name comes from each connector's
+    get_schema(), which is static metadata.
+
+    Args:
+        source:      Source name, e.g. "razorpay"
+        credentials: Credentials used to instantiate each connector's config
+
+    Returns:
+        [{"connector": "razorpay_orders", "table_name": "razorpay_orders"}, ...]
+
+    Raises:
+        KeyError: if source is unknown
+    """
+    if source not in _SOURCE_CONNECTORS:
+        available = list(_SOURCE_CONNECTORS)
+        raise KeyError(f"Unknown source {source!r}. Available: {available}")
+
+    result = []
+    for connector_name in _SOURCE_CONNECTORS[source]:
+        connector_cls, config_cls = _REGISTRY[connector_name]
+        config = config_cls(**credentials)
+        schema = connector_cls(config).get_schema()
+        result.append({"connector": connector_name, "table_name": schema.table_name})
+    return result

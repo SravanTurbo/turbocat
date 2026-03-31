@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from data_connectors.registry import build_from_credentials
+from data_connectors.registry import build_from_credentials, get_schemas_for_source
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -170,8 +170,8 @@ def list_schema(
 
     credentials = get_secret(connection.secret_ref)
     try:
-        connector = build_from_credentials(connection.source, credentials)
-        return [TableEntry(**entry) for entry in connector.list_tables()]
+        entries = get_schemas_for_source(connection.source, credentials)
+        return [TableEntry(**entry) for entry in entries]
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
