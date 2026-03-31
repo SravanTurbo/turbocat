@@ -37,6 +37,20 @@ class KaptureTicketsConnector(BaseSourceConnector):
             self._template_id,
         )
 
+    def test_connection(self) -> None:
+        """Hit the reporting endpoint with a minimal payload to confirm credentials."""
+        now = datetime.now(timezone.utc)
+        self.http_client.post(
+            _ENDPOINT,
+            json={
+                "templateId": self._template_id,
+                "startDate": now.strftime("%Y-%m-%d"),
+                "endDate": now.strftime("%Y-%m-%d"),
+                "pageNo": 1,
+                "pageSize": 1,
+            },
+        )
+
     def extract(
         self,
         start_time: datetime | None = None,
@@ -49,7 +63,9 @@ class KaptureTicketsConnector(BaseSourceConnector):
         Defaults to today if no range is given.
         """
         now = datetime.now(timezone.utc)
-        effective_start = start_time or now.replace(hour=0, minute=0, second=0, microsecond=0)
+        effective_start = start_time or now.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         effective_end = end_time or now
 
         self.logger.info(
@@ -80,7 +96,9 @@ class KaptureTicketsConnector(BaseSourceConnector):
             tickets = response.json()
 
             if not isinstance(tickets, list):
-                self.logger.warning("Unexpected response shape for %s: %s", date_param, type(tickets))
+                self.logger.warning(
+                    "Unexpected response shape for %s: %s", date_param, type(tickets)
+                )
                 current += timedelta(days=1)
                 continue
 
@@ -133,7 +151,9 @@ class KaptureTicketsConnector(BaseSourceConnector):
             "first_assign_emp": record.get("firstAssignEmpName") or None,
             "reopen_count": _to_int(record.get("reopenCount")),
             "dispose_count": _to_int(record.get("disposeCount")),
-            "customer_interaction_count": _to_int(record.get("customerInteractioncount")),
+            "customer_interaction_count": _to_int(
+                record.get("customerInteractioncount")
+            ),
             "agent_interaction_count": _to_int(record.get("agentInteractionCount")),
             "total_interaction_count": _to_int(record.get("totalInteractionCount")),
             "conversation_count": _to_int(ticket.get("Conversation Count")),
@@ -166,7 +186,9 @@ class KaptureTicketsConnector(BaseSourceConnector):
                 ColumnSchema(name="tat", type="string", required=False),
                 ColumnSchema(name="sla", type="string", required=False),
                 ColumnSchema(name="created_at", type="datetime", required=False),
-                ColumnSchema(name="last_conversation_at", type="datetime", required=False),
+                ColumnSchema(
+                    name="last_conversation_at", type="datetime", required=False
+                ),
                 ColumnSchema(name="source_type", type="string", required=False),
                 ColumnSchema(name="create_source_type", type="string", required=False),
                 ColumnSchema(name="create_reason", type="string", required=False),
@@ -201,7 +223,9 @@ class KaptureTicketsConnector(BaseSourceConnector):
                 ColumnSchema(name="conversation_count", type="integer", required=False),
                 ColumnSchema(name="ftr", type="string", required=False),
                 ColumnSchema(name="first_response_time", type="string", required=False),
-                ColumnSchema(name="avg_agent_response_time", type="string", required=False),
+                ColumnSchema(
+                    name="avg_agent_response_time", type="string", required=False
+                ),
                 ColumnSchema(name="avg_handling_time", type="string", required=False),
                 ColumnSchema(name="time_to_resolve", type="string", required=False),
                 ColumnSchema(name="ticket_url", type="string", required=False),
