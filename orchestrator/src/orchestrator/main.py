@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -28,7 +29,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine.dispose()
 
 
-app = FastAPI(title="Orchestrator", lifespan=lifespan)
+app = FastAPI(
+    title="Heartbeat Orchestrator",
+    version="0.1.0",
+    description=(
+        "Control plane for the Heartbeat data pipeline system. "
+        "Manages source connections, pipeline schedules, and job dispatch to client agents."
+    ),
+    lifespan=lifespan,
+    # Disable the default Swagger UI — we serve Scalar instead
+    docs_url=None,
+    redoc_url=None,
+)
 
 app.include_router(connections.router, prefix="/connections", tags=["connections"])
 app.include_router(pipelines.router, prefix="/pipelines", tags=["pipelines"])
@@ -39,3 +51,24 @@ app.include_router(agents.router, prefix="/agents", tags=["agents"])
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/docs", include_in_schema=False)
+def scalar_docs() -> HTMLResponse:
+    """Serve Scalar API reference — CDN-loaded, no extra dependency."""
+    return HTMLResponse(content=f"""<!doctype html>
+<html>
+<head>
+  <title>{app.title} — API Reference</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body>
+  <script
+    id="api-reference"
+    data-url="/openapi.json"
+    data-configuration='{{"theme":"purple"}}'
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>""")
