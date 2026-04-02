@@ -21,3 +21,4 @@ repos:
           - pydantic-settings>=2.13.1
           - sqlalchemy>=2.0.0
           - fastapi
+          - PyJWT>=2.8.0

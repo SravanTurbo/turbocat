@@ -29,7 +29,9 @@ class Agent:
     def __init__(self, settings: AgentSettings, ch_config: ClickHouseConfig) -> None:
         self._settings = settings
         self._ch_config = ch_config
-        self._client = OrchestratorClient(settings.orchestrator_url, settings.id)
+        self._client = OrchestratorClient(
+            settings.orchestrator_url, settings.id, settings.api_key
+        )
         self._semaphore = asyncio.Semaphore(settings.max_workers)
         self._executor = ThreadPoolExecutor(
             max_workers=settings.max_workers, thread_name_prefix="worker"

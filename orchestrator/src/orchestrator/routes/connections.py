@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from orchestrator.auth import get_account_id
 from orchestrator.db import get_db
 from orchestrator.models import Connection, ConnectionStatus
 from orchestrator.secrets import get_secret, put_secret
@@ -33,7 +34,6 @@ class TestConnectionRequest(BaseModel):
 
 
 class CreateConnectionRequest(BaseModel):
-    account_id: uuid.UUID
     name: str
     source: str
     credentials: dict[str, str]
@@ -41,7 +41,6 @@ class CreateConnectionRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "account_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 "name": "Razorpay Production",
                 "source": "razorpay",
                 "credentials": {"api_key": "rzp_live_xxx", "api_secret": "your_secret"},
@@ -76,7 +75,9 @@ class TestConnectionResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _run_test(source: str, credentials: dict[str, str]) -> tuple[ConnectionStatus, str | None]:
+def _run_test(
+    source: str, credentials: dict[str, str]
+) -> tuple[ConnectionStatus, str | None]:
     """
     Attempt a live connection test for the given source and credentials.
 
@@ -119,7 +120,9 @@ def test_connection(body: TestConnectionRequest) -> TestConnectionResponse:
     **Supported sources:** `razorpay`, `kapture`
     """
     status, error = _run_test(body.source, body.credentials)
-    return TestConnectionResponse(success=(status == ConnectionStatus.ACTIVE), error=error)
+    return TestConnectionResponse(
+        success=(status == ConnectionStatus.ACTIVE), error=error
+    )
 
 
 @router.post(
@@ -130,7 +133,11 @@ def test_connection(body: TestConnectionRequest) -> TestConnectionResponse:
     response_description="The created connection record",
     operation_id="createConnection",
 )
-def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_db)) -> Connection:
+def create_connection(
+    body: CreateConnectionRequest,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> Connection:
     """
     Save credentials to Secrets Manager and register the connection.
 
@@ -139,13 +146,13 @@ def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_d
 
     Call `POST /{connection_id}/test` to re-test at any time.
     """
-    secret_ref = f"orchestrator/{body.account_id}/{body.source}"
+    secret_ref = f"orchestrator/{account_id}/{body.source}"
     put_secret(secret_ref, body.credentials)
 
     status, _ = _run_test(body.source, body.credentials)
 
     connection = Connection(
-        account_id=body.account_id,
+        account_id=account_id,
         name=body.name,
         source=body.source,
         secret_ref=secret_ref,
@@ -165,19 +172,24 @@ def create_connection(body: CreateConnectionRequest, db: Session = Depends(get_d
     response_description="All connections for the account, newest first",
     operation_id="listConnections",
 )
-def list_connections(account_id: uuid.UUID | None = None, db: Session = Depends(get_db)) -> list[Connection]:
+def list_connections(
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> list[Connection]:
     """
-    List all saved connections, optionally filtered by `account_id`.
+    List all connections belonging to the authenticated account, newest first.
 
     `status` values:
     - `untested` — saved but never tested
     - `active` — last test passed
     - `failed` — last test failed; credentials may be invalid or the source is unreachable
     """
-    query = db.query(Connection)
-    if account_id is not None:
-        query = query.filter(Connection.account_id == account_id)
-    return query.order_by(Connection.created_at.desc()).all()
+    return (
+        db.query(Connection)
+        .filter(Connection.account_id == account_id)
+        .order_by(Connection.created_at.desc())
+        .all()
+    )
 
 
 @router.post(
@@ -187,7 +199,11 @@ def list_connections(account_id: uuid.UUID | None = None, db: Session = Depends(
     response_description="Whether the stored credentials are still valid",
     operation_id="retestConnection",
 )
-def test_saved_connection(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> TestConnectionResponse:
+def test_saved_connection(
+    connection_id: uuid.UUID,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> TestConnectionResponse:
     """
     Re-test an existing connection using its stored credentials.
 
@@ -197,6 +213,8 @@ def test_saved_connection(connection_id: uuid.UUID, db: Session = Depends(get_db
     connection = db.get(Connection, connection_id)
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
+    if connection.account_id != account_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     credentials = get_secret(connection.secret_ref)
     status, error = _run_test(connection.source, credentials)
@@ -205,7 +223,9 @@ def test_saved_connection(connection_id: uuid.UUID, db: Session = Depends(get_db
     connection.last_tested_at = datetime.now(timezone.utc)
     db.commit()
 
-    return TestConnectionResponse(success=(status == ConnectionStatus.ACTIVE), error=error)
+    return TestConnectionResponse(
+        success=(status == ConnectionStatus.ACTIVE), error=error
+    )
 
 
 @router.get(
@@ -215,7 +235,11 @@ def test_saved_connection(connection_id: uuid.UUID, db: Session = Depends(get_db
     response_description="Connectors and their destination table names for this source",
     operation_id="listConnectionSchema",
 )
-def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list[TableEntry]:
+def list_schema(
+    connection_id: uuid.UUID,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> list[TableEntry]:
     """
     Return all available data entities for a connection.
 
@@ -233,6 +257,8 @@ def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list
     connection = db.get(Connection, connection_id)
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
+    if connection.account_id != account_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     credentials = get_secret(connection.secret_ref)
     try:
@@ -241,4 +267,6 @@ def list_schema(connection_id: uuid.UUID, db: Session = Depends(get_db)) -> list
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch schema: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Failed to fetch schema: {exc}"
+        ) from exc

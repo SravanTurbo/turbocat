@@ -33,7 +33,8 @@ class StatusUpdate(BaseModel):
 
 @router.get("/pending", response_model=list[JobPayload])
 def get_pending_jobs(
-    agent_id: uuid.UUID, db: Session = Depends(get_db)
+    agent_id: uuid.UUID,
+    db: Session = Depends(get_db),
 ) -> list[JobPayload]:
     # Lock matching rows so concurrent agents skip them (no duplicate dispatch)
     jobs = (
@@ -88,7 +89,9 @@ def get_pending_jobs(
 
 @router.post("/{job_id}/status")
 def update_job_status(
-    job_id: uuid.UUID, body: StatusUpdate, db: Session = Depends(get_db)
+    job_id: uuid.UUID,
+    body: StatusUpdate,
+    db: Session = Depends(get_db),
 ) -> dict[str, str]:
     job = db.get(JobRun, job_id)
     if not job:

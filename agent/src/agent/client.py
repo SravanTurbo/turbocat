@@ -32,11 +32,16 @@ class JobPayload(BaseModel):
 
 
 class OrchestratorClient:
-    def __init__(self, base_url: str, agent_id: uuid.UUID) -> None:
+    def __init__(self, base_url: str, agent_id: uuid.UUID, api_key: str) -> None:
         self._base_url = base_url.rstrip("/")
         self._agent_id = agent_id
         self._session = requests.Session()
-        self._session.headers.update({"Content-Type": "application/json"})
+        self._session.headers.update(
+            {
+                "Content-Type": "application/json",
+                "X-Agent-Key": api_key,
+            }
+        )
 
     def get_pending_jobs(self) -> list[JobPayload]:
         resp = self._session.get(

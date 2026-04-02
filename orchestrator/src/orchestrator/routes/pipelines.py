@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from orchestrator.auth import get_account_id
 from orchestrator.db import get_db
 from orchestrator.models import Connection, Pipeline
 from orchestrator.scheduler import deregister_pipeline, register_pipeline
@@ -20,7 +21,6 @@ class PipelineTableConfig(BaseModel):
 
 
 class BulkCreateRequest(BaseModel):
-    account_id: uuid.UUID
     agent_id: uuid.UUID
     connection_id: uuid.UUID
     tables: list[PipelineTableConfig]
@@ -41,15 +41,22 @@ class PipelineResponse(BaseModel):
 
 
 @router.post("/bulk", response_model=list[PipelineResponse], status_code=201)
-def bulk_create_pipelines(body: BulkCreateRequest, request: Request, db: Session = Depends(get_db)) -> list[Pipeline]:
+def bulk_create_pipelines(
+    body: BulkCreateRequest,
+    request: Request,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> list[Pipeline]:
     connection = db.get(Connection, body.connection_id)
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
+    if connection.account_id != account_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     pipelines = []
     for table in body.tables:
         pipeline = Pipeline(
-            account_id=body.account_id,
+            account_id=account_id,
             agent_id=body.agent_id,
             connection_id=body.connection_id,
             connector=table.connector,
@@ -69,26 +76,38 @@ def bulk_create_pipelines(body: BulkCreateRequest, request: Request, db: Session
 
 
 @router.get("/{pipeline_id}", response_model=PipelineResponse)
-def get_pipeline(pipeline_id: uuid.UUID, db: Session = Depends(get_db)) -> Pipeline:
+def get_pipeline(
+    pipeline_id: uuid.UUID,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> Pipeline:
     pipeline = db.get(Pipeline, pipeline_id)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
+    if pipeline.account_id != account_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return pipeline
 
 
 @router.get("/", response_model=list[PipelineResponse])
-def list_pipelines(account_id: uuid.UUID | None = None, db: Session = Depends(get_db)) -> list[Pipeline]:
-    q = db.query(Pipeline)
-    if account_id:
-        q = q.filter(Pipeline.account_id == account_id)
-    return q.all()
+def list_pipelines(
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> list[Pipeline]:
+    return db.query(Pipeline).filter(Pipeline.account_id == account_id).all()
 
 
 @router.patch("/{pipeline_id}/deactivate", response_model=PipelineResponse)
-def deactivate_pipeline(pipeline_id: uuid.UUID, db: Session = Depends(get_db)) -> Pipeline:
+def deactivate_pipeline(
+    pipeline_id: uuid.UUID,
+    account_id: uuid.UUID = Depends(get_account_id),
+    db: Session = Depends(get_db),
+) -> Pipeline:
     pipeline = db.get(Pipeline, pipeline_id)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
+    if pipeline.account_id != account_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     pipeline.is_active = False
     db.commit()
     deregister_pipeline(pipeline_id)

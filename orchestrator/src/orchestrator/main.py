@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from orchestrator.auth import verify_agent_key, verify_token
 from orchestrator.scheduler import load_schedules, scheduler
 from orchestrator.routes import agents, connections, jobs, pipelines
 from orchestrator.settings import settings
@@ -20,7 +22,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         max_overflow=10,
     )
     app.state.engine = engine
-    app.state.session_factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    app.state.session_factory = sessionmaker(
+        bind=engine, autocommit=False, autoflush=False
+    )
 
     scheduler.start()
     load_schedules(app.state.session_factory)
@@ -42,10 +46,27 @@ app = FastAPI(
     redoc_url=None,
 )
 
-app.include_router(connections.router, prefix="/connections", tags=["connections"])
-app.include_router(pipelines.router, prefix="/pipelines", tags=["pipelines"])
-app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
-app.include_router(agents.router, prefix="/agents", tags=["agents"])
+_origins = [o.strip() for o in settings.cors_origins.split(",")]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+_jwt = [Depends(verify_token)]
+_agent_key = [Depends(verify_agent_key)]
+app.include_router(
+    connections.router, prefix="/connections", tags=["connections"], dependencies=_jwt
+)
+app.include_router(
+    pipelines.router, prefix="/pipelines", tags=["pipelines"], dependencies=_jwt
+)
+app.include_router(jobs.router, prefix="/jobs", tags=["jobs"], dependencies=_agent_key)
+app.include_router(
+    agents.router, prefix="/agents", tags=["agents"], dependencies=_agent_key
+)
 
 
 @app.get("/health")

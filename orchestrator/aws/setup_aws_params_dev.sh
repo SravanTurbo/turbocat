@@ -101,6 +101,18 @@ create_secret    "clickhouse.password" "" "ClickHouse password for data-pipeline
 create_ssm_param "scheduler.poll_interval_seconds" "30" "Job poll interval for data-pipelines (DEV)"
 
 # =============================================================================
+# Orchestrator — Auth
+# JWT secret stored in Secrets Manager (sensitive). Algorithm and CORS in SSM.
+# Generate secret with: python -c "import secrets; print(secrets.token_hex(32))"
+# =============================================================================
+
+# TODO: fill in before running
+create_secret    "auth.jwt_secret"    "" "JWT signing secret for data-pipelines (DEV)"
+create_ssm_param "auth.jwt_algorithm" "HS256" "JWT algorithm for data-pipelines (DEV)"
+create_secret    "auth.agent_api_key" "" "Agent shared API key for data-pipelines (DEV)"
+create_ssm_param "auth.cors_origins"  "*"     "Allowed CORS origins for data-pipelines (DEV)"
+
+# =============================================================================
 # Summary
 # =============================================================================
 

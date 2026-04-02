@@ -11,7 +11,10 @@ router = APIRouter()
 
 
 @router.post("/{agent_id}/heartbeat")
-def heartbeat(agent_id: uuid.UUID, db: Session = Depends(get_db)) -> dict[str, str]:
+def heartbeat(
+    agent_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
     agent = db.get(Agent, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
