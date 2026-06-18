@@ -11,7 +11,7 @@ Flow:
 Run:
     RAZORPAY_API_KEY=rzp_test_xxx RAZORPAY_API_SECRET=yyy \\
     CLICKHOUSE_HOST=localhost \\
-    TEST_DATABASE_URL=postgresql://localhost:5432/data_pipelines_db \\
+    TEST_DATABASE_URL=postgresql://localhost:5432/turbocat_db \\
     pytest tests/integration/test_razorpay_pipeline.py -s
 """
 

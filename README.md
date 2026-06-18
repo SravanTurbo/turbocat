@@ -1,18 +1,18 @@
-# data-pipelines
+# turbocat
 
 Monorepo for the data pipeline system — connector library, orchestrator, and client agent.
 
 ## What This Does
 
-Collects data from external sources (Razorpay, Kapture, Salesforce, Shopify, etc.), loads it into a per-client ClickHouse warehouse, and makes it queryable via CubeJS. Each client gets their own isolated data stack in their own AWS account. Our infrastructure only holds pipeline configuration and schedules — raw data never touches our systems.
+Collects data from external sources (Razorpay, Kapture, Salesforce, Shopify, etc.), loads it into a per-client ClickHouse warehouse, and makes it queryable via CubeJS. Each client gets their own isolated data stack in their own infrastructure. The orchestrator only holds pipeline configuration and schedules — raw data never touches it.
 
 ## Structure
 
 ```
-data-pipelines/
+turbocat/
 ├── connectors/     # shared connector library (pip-installable, imported by orchestrator + agent)
 ├── orchestrator/   # control plane — FastAPI + APScheduler + Postgres + Secrets Manager
-└── agent/          # runs in client's AWS account — polls for jobs, executes connectors
+└── agent/          # runs in client's infrastructure — polls for jobs, executes connectors
 ```
 
 Infrastructure (deploying the agent, ClickHouse, CubeJS into a client's account, or deploying the orchestrator into ours) lives in the `platform` repo. Deployment targets vary per client — some deployments go into the client's own AWS account, others into our managed infrastructure — so infra is intentionally kept separate from this repo.

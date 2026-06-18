@@ -1,4 +1,4 @@
-# data-pipelines
+# turbocat
 
 Python monorepo. Three components, each with their own `pyproject.toml` managed by Poetry.
 

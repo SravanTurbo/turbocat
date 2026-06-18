@@ -20,7 +20,7 @@ spec:
         - name: CONFIG_PROVIDER
           value: "aws"
         - name: AWS_PARAM_PREFIX
-          value: "data-pipelines-dev"
+          value: "turbocat-dev"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

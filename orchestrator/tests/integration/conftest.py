@@ -58,7 +58,7 @@ def patch_secrets(session_mocker=None):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 # Test database
 # ---------------------------------------------------------------------------
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://localhost:5432/data_pipelines_db")
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://localhost:5432/turbocat_db")
 
 
 @pytest.fixture(scope="session")

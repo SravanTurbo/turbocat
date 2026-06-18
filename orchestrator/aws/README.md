@@ -9,8 +9,8 @@ Scripts to push orchestrator config to SSM Parameter Store and Secrets Manager.
 
 | Script | Environment | SSM prefix |
 |--------|-------------|------------|
-| `setup_aws_params_dev.sh` | DEV | `data-pipelines-dev.*` |
-| `setup_aws_params_prod.sh` | PROD | `data-pipelines.*` |
+| `setup_aws_params_dev.sh` | DEV | `turbocat-dev.*` |
+| `setup_aws_params_prod.sh` | PROD | `turbocat.*` |
 
 ## Prerequisites
 
@@ -105,7 +105,7 @@ with blanks if you leave a TODO unfilled.
 
 ## How the orchestrator uses these
 
-Set `CONFIG_PROVIDER=aws` and `AWS_PARAM_PREFIX=data-pipelines-dev` (or `data-pipelines`
+Set `CONFIG_PROVIDER=aws` and `AWS_PARAM_PREFIX=turbocat-dev` (or `turbocat`
 for prod) in the ECS task definition. The orchestrator fetches all params at startup
 and assembles `DATABASE_URL` — no `.env` file needed in deployed environments.
 

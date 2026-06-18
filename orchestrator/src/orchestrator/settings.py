@@ -18,18 +18,14 @@ def _load_from_aws(region: str, prefix: str) -> None:
     Fetch orchestrator config from SSM / Secrets Manager and inject into
     os.environ so that Settings() picks them up via its normal env-var path.
 
-    SSM params  → data-pipelines[-dev].{key}
-    Secrets     → data-pipelines[-dev].{key}
+    SSM params  → turbocat[-dev].{key}
+    Secrets     → turbocat[-dev].{key}
     """
     ssm = boto3.client("ssm", region_name=region)
     sm = boto3.client("secretsmanager", region_name=region)
 
     def get_param(key: str) -> str:
-        return str(
-            ssm.get_parameter(Name=f"{prefix}.{key}", WithDecryption=True)["Parameter"][
-                "Value"
-            ]
-        )
+        return str(ssm.get_parameter(Name=f"{prefix}.{key}", WithDecryption=True)["Parameter"]["Value"])
 
     def get_secret(key: str) -> str:
         return str(sm.get_secret_value(SecretId=f"{prefix}.{key}")["SecretString"])
@@ -40,13 +36,9 @@ def _load_from_aws(region: str, prefix: str) -> None:
     db_name = get_param("database.name")
     db_pass = get_secret("database.password")
 
-    os.environ["DATABASE_URL"] = (
-        f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-    )
+    os.environ["DATABASE_URL"] = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
     os.environ["AWS_REGION"] = region
-    os.environ["JOB_POLL_INTERVAL_SECONDS"] = get_param(
-        "scheduler.poll_interval_seconds"
-    )
+    os.environ["JOB_POLL_INTERVAL_SECONDS"] = get_param("scheduler.poll_interval_seconds")
     os.environ["JWT_SECRET"] = get_secret("auth.jwt_secret")
     os.environ["JWT_ALGORITHM"] = get_param("auth.jwt_algorithm")
     os.environ["AGENT_API_KEY"] = get_secret("auth.agent_api_key")
@@ -55,9 +47,9 @@ def _load_from_aws(region: str, prefix: str) -> None:
 
 if _CONFIG_PROVIDER == "aws":
     _region = os.getenv("AWS_REGION", "ap-south-1")
-    # Dev prefix: data-pipelines-dev, Prod prefix: data-pipelines
+    # Dev prefix: turbocat-dev, Prod prefix: turbocat
     # Mirrors the IAMx convention used in setup scripts
-    _prefix = os.getenv("AWS_PARAM_PREFIX", "data-pipelines")
+    _prefix = os.getenv("AWS_PARAM_PREFIX", "turbocat")
     _load_from_aws(_region, _prefix)
 
 
@@ -65,7 +57,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), extra="ignore")
 
     # Shared RDS — orchestrator-db logical database
-    database_url: str  # e.g. postgresql://user:pass@rds-host:5432/data_pipelines_db
+    database_url: str  # e.g. postgresql://user:pass@rds-host:5432/turbocat_db
 
     # AWS
     aws_region: str = "ap-south-1"

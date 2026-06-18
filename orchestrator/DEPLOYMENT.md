@@ -17,7 +17,7 @@ make orchestrator-setup-iam
 ```
 
 This creates:
-- ECR repo: `767397958941.dkr.ecr.ap-south-1.amazonaws.com/orchestrator`
+- ECR repo: `<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.<YOUR_AWS_REGION>.amazonaws.com/orchestrator`
 - IAM policy: `orchestrator-policy` (Secrets Manager read access)
 - IAM roles: `orchestrator-dev-role`, `orchestrator-role` (IRSA for EKS pods)
 
@@ -65,15 +65,15 @@ export AWS_SECRET_ACCESS_KEY=...
 
 | Resource | Value |
 |---|---|
-| Region | `ap-south-1` |
-| ECR repo | `767397958941.dkr.ecr.ap-south-1.amazonaws.com/orchestrator` |
-| Dev cluster | `arn:aws:eks:ap-south-1:767397958941:cluster/development` |
-| Prod cluster | `arn:aws:eks:ap-south-1:767397958941:cluster/production` |
+| Region | `<YOUR_AWS_REGION>` |
+| ECR repo | `<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.<YOUR_AWS_REGION>.amazonaws.com/orchestrator` |
+| Dev cluster | `arn:aws:eks:<YOUR_AWS_REGION>:<YOUR_AWS_ACCOUNT_ID>:cluster/development` |
+| Prod cluster | `arn:aws:eks:<YOUR_AWS_REGION>:<YOUR_AWS_ACCOUNT_ID>:cluster/production` |
 | Namespace | `services` |
-| Dev domain | `orchestrator-api.goheartbeat.com` |
-| Prod domain | `orchestrator-api.goheartbeat.app` |
-| Dev IAM role | `arn:aws:iam::767397958941:role/orchestrator-dev-role` |
-| Prod IAM role | `arn:aws:iam::767397958941:role/orchestrator-role` |
+| Dev domain | `orchestrator-api.<YOUR_DEV_DOMAIN>` |
+| Prod domain | `orchestrator-api.<YOUR_PROD_DOMAIN>` |
+| Dev IAM role | `arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/orchestrator-dev-role` |
+| Prod IAM role | `arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/orchestrator-role` |
 
 ## Secrets / Config
 
@@ -81,14 +81,14 @@ The orchestrator fetches config from SSM Parameter Store and Secrets Manager at 
 
 | Key | Store | Dev path | Prod path |
 |---|---|---|---|
-| `database.host` | SSM | `data-pipelines-dev.database.host` | `data-pipelines.database.host` |
-| `database.port` | SSM | `data-pipelines-dev.database.port` | `data-pipelines.database.port` |
-| `database.user` | SSM | `data-pipelines-dev.database.user` | `data-pipelines.database.user` |
-| `database.name` | SSM | `data-pipelines-dev.database.name` | `data-pipelines.database.name` |
-| `database.password` | Secrets Manager | `data-pipelines-dev.database.password` | `data-pipelines.database.password` |
-| `scheduler.poll_interval_seconds` | SSM | `data-pipelines-dev.scheduler.poll_interval_seconds` | `data-pipelines.scheduler.poll_interval_seconds` |
+| `database.host` | SSM | `turbocat-dev.database.host` | `turbocat.database.host` |
+| `database.port` | SSM | `turbocat-dev.database.port` | `turbocat.database.port` |
+| `database.user` | SSM | `turbocat-dev.database.user` | `turbocat.database.user` |
+| `database.name` | SSM | `turbocat-dev.database.name` | `turbocat.database.name` |
+| `database.password` | Secrets Manager | `turbocat-dev.database.password` | `turbocat.database.password` |
+| `scheduler.poll_interval_seconds` | SSM | `turbocat-dev.scheduler.poll_interval_seconds` | `turbocat.scheduler.poll_interval_seconds` |
 
-The pod has IAM permissions (via IRSA) to read from the `data-pipelines-dev.*` (dev) and `data-pipelines.*` (prod) paths.
+The pod has IAM permissions (via IRSA) to read from the `turbocat-dev.*` (dev) and `turbocat.*` (prod) paths.
 
 ## k8s Structure
 
@@ -96,6 +96,6 @@ The pod has IAM permissions (via IRSA) to read from the `data-pipelines-dev.*` (
 k8s/
 ├── base/               # shared manifests
 └── overlays/
-    ├── dev/            # dev overrides (1 replica, dev role, goheartbeat.com)
-    └── prod/           # prod overrides (2 replicas, prod role, goheartbeat.app)
+    ├── dev/            # dev overrides (1 replica, dev role)
+    └── prod/           # prod overrides (2 replicas, prod role)
 ```

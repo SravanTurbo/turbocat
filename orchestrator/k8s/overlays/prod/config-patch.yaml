@@ -21,7 +21,7 @@ spec:
         - name: CONFIG_PROVIDER
           value: "aws"
         - name: AWS_PARAM_PREFIX
-          value: "data-pipelines"
+          value: "turbocat"
         resources:
           requests:
             cpu: "200m"
