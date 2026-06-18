@@ -4,13 +4,11 @@ Python monorepo. Three components, each with their own `pyproject.toml` managed 
 
 ```
 connectors/   # shared pip-installable connector library
-orchestrator/ # FastAPI control plane (our AWS)
-agent/        # polling worker (client's AWS account)
+orchestrator/ # FastAPI control plane
+agent/        # polling worker (runs in client's infrastructure)
 ```
 
-## Working conventions
-
-**Worktrees** live at `/Users/sra1/Documents/hb/backend/worktrees/{branch-slug}/`. Always work in the worktree for the current branch, not directly in `data-pipelines/`.
+## Development conventions
 
 **Python version:** 3.13. Strict mypy (`strict = true`) in all components.
 
@@ -20,7 +18,7 @@ agent/        # polling worker (client's AWS account)
 
 ## Architecture in one line
 
-APScheduler (orchestrator) fires jobs → agent polls `GET /jobs/pending` → executor runs connector → writes to ClickHouse in client's AWS account. Raw data never touches our infra.
+APScheduler (orchestrator) fires jobs → agent polls `GET /jobs/pending` → executor runs connector → writes to ClickHouse in client's infrastructure. Raw data never touches our infra.
 
 See `README.md` for full architecture and `TODO.md` for known debt.
 

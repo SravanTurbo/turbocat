@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: orchestrator
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/orchestrator-role
 spec:
   replicas: 2
   template:
     metadata:
       annotations:
-        eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-role
+        eks.amazonaws.com/role-arn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/orchestrator-role
     spec:
       containers:
       - name: orchestrator
         env:
         - name: AWS_REGION
-          value: "ap-south-1"
+          value: "<YOUR_AWS_REGION>"
         - name: APP_ENV
           value: "prod"
         - name: CONFIG_PROVIDER
@@ -36,8 +36,8 @@ metadata:
   name: orchestrator
   annotations:
     alb.ingress.kubernetes.io/group.name: "shared-alb"
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-south-1:767397958941:certificate/c02c00eb-b47a-43c3-9370-acad4bc0c931"
-    alb.ingress.kubernetes.io/subnets: "subnet-03f8b2a82e958714d, subnet-0b6b6a7c7ac896334"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:<YOUR_AWS_REGION>:<YOUR_AWS_ACCOUNT_ID>:certificate/<YOUR_CERT_ID>"
+    alb.ingress.kubernetes.io/subnets: "<YOUR_PUBLIC_SUBNET_1>, <YOUR_PUBLIC_SUBNET_2>"
     alb.ingress.kubernetes.io/tags: "Environment=production"
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
     alb.ingress.kubernetes.io/healthcheck-path: "/health"
@@ -45,7 +45,7 @@ metadata:
     alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-2016-08"
 spec:
   rules:
-  - host: orchestrator-api.goheartbeat.app
+  - host: orchestrator-api.<YOUR_DOMAIN>
     http:
       paths:
       - path: /
@@ -68,4 +68,4 @@ kind: ServiceAccount
 metadata:
   name: orchestrator
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::767397958941:role/orchestrator-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/orchestrator-role
